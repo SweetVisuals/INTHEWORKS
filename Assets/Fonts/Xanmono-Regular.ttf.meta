@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: 59371083abf32814f8a846f3984d7201
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 32
+  includeFontData: 1
+  fontNames:
+  - Xanmono Regular
+  - Xanmono
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  advanceValueRoundingMode: 1
+  characterSpacing: 0
+  characterPadding: 1
+  convertCase: 0
+  characterSpacingType: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
