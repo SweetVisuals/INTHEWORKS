@@ -24,16 +24,23 @@ namespace IsometricGame.Editor
             IsometricWorldMap worldMap = mapObj.GetComponent<IsometricWorldMap>();
             if (worldMap == null) worldMap = mapObj.AddComponent<IsometricWorldMap>();
 
-            worldMap.customFloorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden floor tile 32x32.png");
+            worldMap.customFloorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/floor wood tile 32x32 (1).png")
+                                       ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden floor tile 32x32.png");
             worldMap.customWallLeftSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/left wall tile 32x32.png");
             worldMap.customWallRightSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/right wall tile 32x32.png");
-            worldMap.customDoorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/door black void.png");
-            worldMap.customWindowSprite = null;
-            worldMap.RoomWidth = 4;
-            worldMap.RoomDepth = 4;
+            worldMap.customDoorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden door.png")
+                                      ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden door_0002.png")
+                                      ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/dark void door (1).png");
+            worldMap.customWindowSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden window (1).png")
+                                        ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden window.png")
+                                        ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden window_0002.png");
+            worldMap.customDeskSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/desk with computer_0003.png")
+                                     ?? AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/desk with computer_0002.png");
+            worldMap.RoomWidth = 6;
+            worldMap.RoomDepth = 6;
             worldMap.WallHeight = 3;
-            worldMap.DoorColumn = 2;
-            worldMap.WindowColumn = -1;
+            worldMap.DoorColumn = 4;
+            worldMap.WindowColumn = 1;
             worldMap.GenerateOpenWorld = false;
             worldMap.GenerateWorldMap();
 
@@ -128,7 +135,9 @@ namespace IsometricGame.Editor
 
             IsometricFollowCamera followCam = mainCam.GetComponent<IsometricFollowCamera>();
             if (followCam == null) followCam = mainCam.gameObject.AddComponent<IsometricFollowCamera>();
-            followCam.SetTarget(playerObj.transform, 1.6f);
+            followCam.Target = playerObj.transform;
+            followCam.FollowPlayer = false;
+            followCam.PositionOnRoomCenter();
 
             // 4. Setup Money UI
             MoneyUISetupEditor.SetupMoneyHUD();

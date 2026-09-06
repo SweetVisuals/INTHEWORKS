@@ -12,16 +12,26 @@ namespace IsometricGame.Tilemap
         public const float PixelsPerUnit = 32.0f;
         public const float StepPixelsX = 16.0f;
         public const float StepPixelsY = 8.0f;
-        public const float WallStepPixelsY = 8.0f;
+        public const float WallStepPixelsY = 15.0f;
 
         public const float DefaultTileWidth = (StepPixelsX * 2f) / PixelsPerUnit;       // 1.0f  (32px / 32 PPU)
         public const float DefaultTileHeight = (StepPixelsY * 2f) / PixelsPerUnit;      // 0.5f  (16px / 32 PPU)
-        public const float DefaultWallStepHeight = WallStepPixelsY / PixelsPerUnit;     // 0.25f (8px / 32 PPU)
+        public const float DefaultWallStepHeight = WallStepPixelsY / PixelsPerUnit;     // 0.46875f (15px / 32 PPU)
 
         /// <summary>
         /// Converts integer Grid coordinates (gridX, gridY) and optional elevation (stack height) to 2D World coordinates.
         /// </summary>
         public static Vector2 GridToWorld(int gridX, int gridY, int elevation = 0, float tileWidth = DefaultTileWidth, float tileHeight = DefaultTileHeight, float wallStepHeight = DefaultWallStepHeight)
+        {
+            float worldX = (gridX - gridY) * (tileWidth * 0.5f);
+            float worldY = (gridX + gridY) * (tileHeight * 0.5f) + (elevation * wallStepHeight);
+            return new Vector2(worldX, worldY);
+        }
+
+        /// <summary>
+        /// Converts floating-point Grid coordinates (gridX, gridY) and optional elevation (stack height) to 2D World coordinates.
+        /// </summary>
+        public static Vector2 GridToWorld(float gridX, float gridY, float elevation = 0f, float tileWidth = DefaultTileWidth, float tileHeight = DefaultTileHeight, float wallStepHeight = DefaultWallStepHeight)
         {
             float worldX = (gridX - gridY) * (tileWidth * 0.5f);
             float worldY = (gridX + gridY) * (tileHeight * 0.5f) + (elevation * wallStepHeight);

@@ -1,15 +1,13 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-#if TMPro
-using TMPro;
-#endif
 
 namespace IsometricGame.UI
 {
     /// <summary>
     /// Clean and stylish Money HUD Controller.
-    /// Handles money balance display, smooth counting animation, and punch bounce effects.
+    /// Displays the money balance using the money icon and pixel art numbers (0-9, commas).
+    /// Features smooth counting animations, bounce effects, and insufficient funds feedback.
     /// </summary>
     public class MoneyUI : MonoBehaviour
     {
@@ -18,20 +16,17 @@ namespace IsometricGame.UI
         [Header("Starting Balance")]
         [SerializeField] private long currentMoney = 25000;
 
+#pragma warning disable CS0649
         [Header("UI References")]
         [Tooltip("The Image component displaying the money icon.")]
         [SerializeField] private Image moneyIconImage;
 
-        [Tooltip("Standard UI Text (if not using TextMeshPro).")]
-        [SerializeField] private Text moneyText;
-
-#if TMPro
-        [Tooltip("TextMeshPro text component.")]
-        [SerializeField] private TMP_Text moneyTMPText;
-#endif
+        [Tooltip("The pixel art numbers display component.")]
+        [SerializeField] private PixelNumberDisplay pixelNumberDisplay;
 
         [Tooltip("Container transform for punch/bounce animation.")]
         [SerializeField] private RectTransform containerRect;
+#pragma warning restore CS0649
 
         [Header("Animation Settings")]
         [Tooltip("Smoothly count numbers when balance changes.")]
@@ -39,9 +34,10 @@ namespace IsometricGame.UI
         [SerializeField] private float countDuration = 0.5f;
         [SerializeField] private bool bounceOnChange = true;
 
-        [Header("Formatting")]
-        [SerializeField] private string currencySymbol = "$";
-        [SerializeField] private string format = "#,##0";
+        [Header("Visual Styling")]
+        [SerializeField] private Color normalColor = Color.white;
+        [SerializeField] private Color gainColor = new Color(0.35f, 1.0f, 0.65f);
+        [SerializeField] private Color spendColor = new Color(1.0f, 0.4f, 0.4f);
 
         private long displayedMoney;
         private Coroutine countCoroutine;
@@ -64,13 +60,18 @@ namespace IsometricGame.UI
                 originalScale = containerRect.localScale;
             }
 
+            if (pixelNumberDisplay == null)
+            {
+                pixelNumberDisplay = GetComponentInChildren<PixelNumberDisplay>();
+            }
+
             displayedMoney = currentMoney;
-            UpdateTextInstant(displayedMoney);
+            UpdateDisplayInstant(displayedMoney);
         }
 
         private void Start()
         {
-            UpdateTextInstant(currentMoney);
+            UpdateDisplayInstant(currentMoney);
         }
 
         /// <summary>
@@ -101,12 +102,12 @@ namespace IsometricGame.UI
         public void SetMoney(long newAmount)
         {
             long oldAmount = currentMoney;
-            currentMoney = Mathf.Max(0, (int)newAmount);
+            currentMoney = System.Math.Max(0L, newAmount);
 
             if (bounceOnChange)
             {
                 if (bounceCoroutine != null) StopCoroutine(bounceCoroutine);
-                bounceCoroutine = StartCoroutine(AnimateBounce(newAmount >= oldAmount ? Color.green : Color.red));
+                bounceCoroutine = StartCoroutine(AnimateBounce(newAmount >= oldAmount ? gainColor : spendColor));
             }
 
             if (animateCounting && gameObject.activeInHierarchy)
@@ -117,7 +118,7 @@ namespace IsometricGame.UI
             else
             {
                 displayedMoney = currentMoney;
-                UpdateTextInstant(displayedMoney);
+                UpdateDisplayInstant(displayedMoney);
             }
         }
 
@@ -132,12 +133,12 @@ namespace IsometricGame.UI
                 t = 1f - (1f - t) * (1f - t);
 
                 displayedMoney = (long)Mathf.Lerp(startVal, targetVal, t);
-                UpdateTextInstant(displayedMoney);
+                UpdateDisplayInstant(displayedMoney);
                 yield return null;
             }
 
             displayedMoney = targetVal;
-            UpdateTextInstant(displayedMoney);
+            UpdateDisplayInstant(displayedMoney);
         }
 
         private IEnumerator AnimateBounce(Color flashColor)
@@ -147,6 +148,11 @@ namespace IsometricGame.UI
             float elapsed = 0f;
             float duration = 0.25f;
             Vector3 punchScale = originalScale * 1.15f;
+
+            if (pixelNumberDisplay != null)
+            {
+                pixelNumberDisplay.DigitColor = flashColor;
+            }
 
             while (elapsed < duration)
             {
@@ -161,10 +167,20 @@ namespace IsometricGame.UI
                 {
                     containerRect.localScale = Vector3.Lerp(punchScale, originalScale, (t - 0.5f) * 2f);
                 }
+
+                if (pixelNumberDisplay != null)
+                {
+                    pixelNumberDisplay.DigitColor = Color.Lerp(flashColor, normalColor, t);
+                }
+
                 yield return null;
             }
 
             containerRect.localScale = originalScale;
+            if (pixelNumberDisplay != null)
+            {
+                pixelNumberDisplay.DigitColor = normalColor;
+            }
         }
 
         private void TriggerInsufficientFundsEffect()
@@ -182,6 +198,11 @@ namespace IsometricGame.UI
             float duration = 0.3f;
             float strength = 8f;
 
+            if (pixelNumberDisplay != null)
+            {
+                pixelNumberDisplay.DigitColor = spendColor;
+            }
+
             while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
@@ -191,22 +212,17 @@ namespace IsometricGame.UI
             }
 
             containerRect.anchoredPosition = originalPos;
+            if (pixelNumberDisplay != null)
+            {
+                pixelNumberDisplay.DigitColor = normalColor;
+            }
         }
 
-        private void UpdateTextInstant(long amount)
+        private void UpdateDisplayInstant(long amount)
         {
-            string formatted = currencySymbol + amount.ToString(format);
-
-#if TMPro
-            if (moneyTMPText != null)
+            if (pixelNumberDisplay != null)
             {
-                moneyTMPText.text = formatted;
-                return;
-            }
-#endif
-            if (moneyText != null)
-            {
-                moneyText.text = formatted;
+                pixelNumberDisplay.SetValue(amount);
             }
         }
 

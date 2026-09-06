@@ -182,7 +182,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 1.6
+  orthographic size: 2.2
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -207,7 +207,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.75, z: -10}
+  m_LocalPosition: {x: 0, y: 1.25, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -269,8 +269,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48f95840ab42d1746b10762da98d1a10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  followPlayer: 0
+  roomCenterOffset: {x: 0, y: 0.45, z: -10}
   target: {fileID: 2200384912}
-  offset: {x: 0, y: 0, z: -10}
+  offset: {x: 0, y: 0.75, z: -10}
   followSpeed: 6
   lookAheadFactor: 0.4
   initialZoom: 1.6
@@ -475,22 +477,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c81edb96a09440843870acf0d85c2070, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generateOpenWorld: 0
-  worldRadius: 12
+  generateOutsideWorld: 1
   roomOrigin: {x: 0, y: 0}
-  roomWidth: 4
-  roomDepth: 4
+  roomWidth: 6
+  roomDepth: 6
   wallHeight: 3
-  doorColumn: 2
-  windowColumn: -1
-  customFloorSprite: {fileID: 21300000, guid: dbc575245a1bd4546bf44451b2c80401, type: 3}
+  doorColumn: 4
+  doorElevation: 0
+  windowColumn: 1
+  windowElevation: 1
+  spawnDesk: 1
+  deskPosition: {x: 4, y: 2}
+  spawnDrawer: 1
+  drawerPosition: {x: 5, y: 0}
+  drawerWorldOffset: {x: 0, y: 0}
+  spawnBed: 1
+  bedPosition: {x: 1, y: 2}
+  bedWorldOffset: {x: -0.405, y: -0.36}
+  createSafeZone: 1
+  safeZoneTileRadius: 1
+  outsideOrigin: {x: 20, y: 0}
+  outsideDoorOffset: {x: 4, y: 4}
+  bushNoiseScale: 0.18
+  bushThreshold: 0.7
+  bushSeed: 42
+  bushClearRadius: 3.5
+  customFloorSprite: {fileID: 21300000, guid: a4bfe846540101f4eb42677891f309dd, type: 3}
   customWallLeftSprite: {fileID: 21300000, guid: 21765f7f528822d4ab58d0f1eb6a5745, type: 3}
   customWallRightSprite: {fileID: 21300000, guid: 6d4e6f2cc95ae064090f8c1bb436acf2, type: 3}
-  customDoorSprite: {fileID: 21300000, guid: 7949ae28e8a91fd4d9fb191a7af234b6, type: 3}
-  customWindowSprite: {fileID: 0}
-  customGrassSprite: {fileID: 0}
+  customDoorSprite: {fileID: 21300000, guid: 52dd0dd1858c6d94d9c65cbfa72ff681, type: 3}
+  customWindowSprite: {fileID: 21300000, guid: 035df89d4d3e0ff49ba590e1f561d59d, type: 3}
+  customDeskSprite: {fileID: 21300000, guid: 129ce71a75f950b43a95e3bf59d7aba6, type: 3}
+  customDrawerSprite: {fileID: 21300000, guid: 6d5f3e04b2700a741b690247e029e8bd, type: 3}
+  customDrawerHoverOutlineSprite: {fileID: 21300000, guid: e6ca059e469a1554994e203bdcc22d32, type: 3}
+  customDeskFlickerSprite: {fileID: 21300000, guid: 553970a2cad85674fb122dbb4e6cf625, type: 3}
+  customDeskOffSprite: {fileID: 21300000, guid: 0526bbdc4b534094a217240f8a65c743, type: 3}
+  customDeskGlowSprite: {fileID: 21300000, guid: 82c5f1a3098e4785b9b71a1d95e921d4, type: 3}
+  customBedSprite: {fileID: 21300000, guid: be9a69d82e8f3874885e84fb7ff77d35, type: 3}
+  customGrassSprite: {fileID: 21300000, guid: d7ea08224d00f684fb79bd49187b1a00, type: 3}
+  customBushSprite: {fileID: 21300000, guid: 1ea0e31a2891e1b4f9a7b6a14be97646, type: 3}
+  customPineTreeSprite: {fileID: 21300000, guid: 5c9d492d0f9e4f4498a2081d4988b30b, type: 3}
   addRoomBoundaries: 1
   mapRoot: {fileID: 0}
+  roomPlane: {fileID: 0}
+  outsidePlane: {fileID: 0}
 --- !u!114 &1200384913
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -502,9 +532,22 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38f80491ab42d1746b10762da98d1a10, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  moneyCardSprite: {fileID: 21300000, guid: 2f3087ea034ee7446a096638037aec8d, type: 3}
   moneySprite: {fileID: 21300000, guid: 07c6d7596978a104e86ab4c5eb021322, type: 3}
-  customFont: {fileID: 12800000, guid: 59371083abf32814f8a846f3984d7201, type: 3}
+  numbersTexture: {fileID: 2800000, guid: 596961f3b8878c3489feef2df6cf09f6, type: 3}
+  hotbarSlotSprite: {fileID: 21300000, guid: 8aa5ee1cac6871f44aecd5636b1fe1ad, type: 3}
+  hotbarSelectedSprite: {fileID: 21300000, guid: 26fadbdbd3f9a1e4d816fa1d19ed32a4, type: 3}
+  energyBarFrameSprite: {fileID: 21300000, guid: 8680d65e3f2746599238eae9d61c244a, type: 3}
+  energyBarEmptySprite: {fileID: 21300000, guid: 388f9d41f0d2d4d4c99c86f34a8984cd, type: 3}
+  energyBarFullSprite: {fileID: 21300000, guid: 25529091cb031e34590e719b05173130, type: 3}
+  popupBackgroundSprite: {fileID: 21300000, guid: a4047d0c4044a094b8f172b90d62976a, type: 3}
+  popupHoverOutlineSprite: {fileID: 21300000, guid: 729599fdc145c4d4bb46687d0f7afc05, type: 3}
+  sleepTextSprite: {fileID: 21300000, guid: 02864d2bb4c0ac34fa0987b146f7a488, type: 3}
+  openTextSprite: {fileID: 21300000, guid: 66e1f09a3892c1f4793c7f26933212c5, type: 3}
+  sleepingFrames:
+  - {fileID: 21300000, guid: 04f3d78b8673f2c4ab0b39cd2fecf436, type: 3}
+  - {fileID: 21300000, guid: e56f6329e3f14344488a01cc1be42cae, type: 3}
+  - {fileID: 21300000, guid: 96a8ef5470c8e574b8011cfba1d13a30, type: 3}
 --- !u!4 &1200384912
 Transform:
   m_ObjectHideFlags: 0
@@ -533,7 +576,7 @@ GameObject:
   - component: {fileID: 2200384913}
   - component: {fileID: 2200384914}
   m_Layer: 0
-  m_Name: Player_Cylinder
+  m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -548,11 +591,10 @@ Transform:
   m_GameObject: {fileID: 2200384910}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.75, z: 0}
+  m_LocalPosition: {x: 0, y: 1.25, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2200384920}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &2200384911
@@ -614,8 +656,8 @@ CircleCollider2D:
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
-  m_Radius: 0.25
+  m_Offset: {x: 0, y: 0.0225}
+  m_Radius: 0.075
 --- !u!114 &2200384914
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -628,97 +670,82 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8f95840ab42d1746b10762da98d1a10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  controlScheme: 0
-  moveSpeed: 3.5
-  acceleration: 25
-  deceleration: 30
-  visualTransform: {fileID: 2200384920}
-  turnSpeed: 15
---- !u!1 &2200384919
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2200384920}
-  - component: {fileID: 2200384921}
-  - component: {fileID: 2200384922}
-  m_Layer: 0
-  m_Name: Visual
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2200384920
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200384919}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.25881904, y: 0, z: 0, w: 0.9659258}
-  m_LocalPosition: {x: 0, y: 0.15, z: 0}
-  m_LocalScale: {x: 0.35, y: 0.25, z: 0.35}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2200384912}
-  m_LocalEulerAnglesHint: {x: 30, y: 0, z: 0}
---- !u!33 &2200384921
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200384919}
-  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &2200384922
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200384919}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
+  controlScheme: 1
+  walkSpeed: 1.15
+  runSpeed: 1.8
+  acceleration: 24
+  deceleration: 28
+  snapToGridLanes: 0
+  laneSnapStrength: 3.5
+  walkFps: 8
+  scaleAnimWithVelocity: 1
+  idleSouth: {fileID: 21300000, guid: 0352eb03fae5ae34fb68d9f4852da00a, type: 3}
+  idleSouthEast: {fileID: 21300000, guid: db82d96bcab7508499bf38318e87498c, type: 3}
+  idleEast: {fileID: 21300000, guid: cd50a12e3dc18284581f18536f6d0f62, type: 3}
+  idleNorthEast: {fileID: 21300000, guid: 8aa54ff14ae7f7f45b7fb5f891b9dbd6, type: 3}
+  idleNorth: {fileID: 21300000, guid: f6d860f48f4305f42a59a7213444458f, type: 3}
+  idleNorthWest: {fileID: 21300000, guid: 3ec2e5b4a3951f24794e508892f3922c, type: 3}
+  idleWest: {fileID: 21300000, guid: ec735163b2f9f8c44b61fa1c94481358, type: 3}
+  idleSouthWest: {fileID: 21300000, guid: eb9b28a9b6c43c246835be26e83889aa, type: 3}
+  walkSouth:
+  - {fileID: 21300000, guid: 30ca5ddbf498432c986e1a16992558d2, type: 3}
+  - {fileID: 21300000, guid: a3559cbf20ba4322b0b20b0f74bacaa6, type: 3}
+  - {fileID: 21300000, guid: a830abd2122c4c2998a194d44eedff9e, type: 3}
+  - {fileID: 21300000, guid: f22fba7c0b4349b1886a356c9d4bc8c3, type: 3}
+  - {fileID: 21300000, guid: fbbbc5745c0147ee853d5830e76199c3, type: 3}
+  - {fileID: 21300000, guid: f79bbd3ec12f4ff3b2ad67aa3224b7a4, type: 3}
+  - {fileID: 21300000, guid: 38d5c9feda26448c9371c6f060d369b0, type: 3}
+  - {fileID: 21300000, guid: fe28fa851d994ce984c4f1e861577c0e, type: 3}
+  walkNorth:
+  - {fileID: 21300000, guid: 2e5e90f76b934a94ab99bad89a2e6a23, type: 3}
+  - {fileID: 21300000, guid: 3d2770b6d9bd4c35a6fb2c1d1ebd3b8e, type: 3}
+  - {fileID: 21300000, guid: 261c4d5fe83648188c30c826bce18d5a, type: 3}
+  - {fileID: 21300000, guid: 59ab5a8dcf46472cb8034609779b5dff, type: 3}
+  - {fileID: 21300000, guid: c4916a35ab964b23bed18353da723fa0, type: 3}
+  - {fileID: 21300000, guid: 977af2d31c74472681fb8e2d4ebf673a, type: 3}
+  - {fileID: 21300000, guid: b78c4ed8d6d248df93a88c370f274ac4, type: 3}
+  - {fileID: 21300000, guid: f75f310650614214883f7658896154c9, type: 3}
+  walkSouthEast:
+  - {fileID: 21300000, guid: bfcb6ae592a832f4aae0c44c5ff0714b, type: 3}
+  - {fileID: 21300000, guid: daebdd0a6e5b9584ea0bc8cb4416ea69, type: 3}
+  - {fileID: 21300000, guid: 7a268e0d4fc9bc042a9693ca4fb2ce37, type: 3}
+  - {fileID: 21300000, guid: 00b40eb5e8fe58e4da542da60cb9bca6, type: 3}
+  - {fileID: 21300000, guid: d091761e3895e694589d9859f518e3c3, type: 3}
+  - {fileID: 21300000, guid: de3595cb64673644f85e49520e7dfca5, type: 3}
+  - {fileID: 21300000, guid: d839fa345268c1742a04874495e8648b, type: 3}
+  - {fileID: 21300000, guid: f70860882e3658540b615da2828b6d05, type: 3}
+  walkSouthWest:
+  - {fileID: 21300000, guid: adfb1e5c4620f4c40b82f0d1ae0b2d3e, type: 3}
+  - {fileID: 21300000, guid: a0bb14cfd29759b41a33a388b0a1a0db, type: 3}
+  - {fileID: 21300000, guid: a1aa1ae4fa4ef5949a6e60da7f7e9154, type: 3}
+  - {fileID: 21300000, guid: d529ce8d58c805244b7027d53b92cbcf, type: 3}
+  - {fileID: 21300000, guid: a876b0cb51323f444ba7494f6f236e7a, type: 3}
+  - {fileID: 21300000, guid: e17105bb9df66f743a53d1fb527a24da, type: 3}
+  - {fileID: 21300000, guid: bbccbe911feec2646b9aebda95e921d4, type: 3}
+  - {fileID: 21300000, guid: 025e1bb945d8b744ea6f6e5a03425123, type: 3}
+  walkNorthEast:
+  - {fileID: 21300000, guid: 4fa67123ae4c6d34ea97a9f77f0a8d6f, type: 3}
+  - {fileID: 21300000, guid: f7ef279a0b12bc14aa66bce6358ecdb8, type: 3}
+  - {fileID: 21300000, guid: a6df2592750e3094ca385750d4ad5ba0, type: 3}
+  - {fileID: 21300000, guid: caad7754d922ec947a618f0f074a16ec, type: 3}
+  - {fileID: 21300000, guid: de3595cb64673644f85e49520e7dfca5, type: 3}
+  - {fileID: 21300000, guid: d839fa345268c1742a04874495e8648b, type: 3}
+  - {fileID: 21300000, guid: a5aeb00cb310a2442af1a84f33190df0, type: 3}
+  - {fileID: 21300000, guid: ddb6e1b33dee68340869b84767e709d1, type: 3}
+  walkNorthWest:
+  - {fileID: 21300000, guid: 147ebff73fbc6ba46aa29ffbe5ee1a47, type: 3}
+  - {fileID: 21300000, guid: beff3d526e838b64e9a59cf629e847c0, type: 3}
+  - {fileID: 21300000, guid: adb7501a1829e1c4ea21c7d24ab83e89, type: 3}
+  - {fileID: 21300000, guid: 9fe45cc3980315a4595e1eec7dafa4a4, type: 3}
+  - {fileID: 21300000, guid: 3bb0a11c1d07e2448b48efad5c0a37de, type: 3}
+  - {fileID: 21300000, guid: 4cbdbb050afdb6745aa64cb7ee5ff1bd, type: 3}
+  - {fileID: 21300000, guid: 2e8fbceab65eb874da54f39226cb9ba3, type: 3}
+  - {fileID: 21300000, guid: de2abf15392ef2340899f84898d63a8a, type: 3}
+  characterScale: {x: 0.42, y: 0.42}
+  characterRenderer: {fileID: 0}
+  shadowRenderer: {fileID: 0}
+  shadowScale: {x: 0.35, y: 0.14}
+  shadowColor: {r: 0, g: 0, b: 0, a: 0.4}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

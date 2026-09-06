@@ -114,3 +114,6 @@ ignore.conf
 # Recovery
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+
+# Scratch test / preview images in root
+/*.png
