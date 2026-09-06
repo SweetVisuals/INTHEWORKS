@@ -21,7 +21,8 @@ namespace IsometricGame.Tilemap
         ComputerDesk = 12,
         StackingBox = 13,
         BlueBed = 14,
-        Bush = 15
+        Bush = 15,
+        LongGrass = 16
     }
 
     /// <summary>
@@ -87,6 +88,7 @@ namespace IsometricGame.Tilemap
         public Sprite customDeskGlowSprite;
         public Sprite customBedSprite;
         public Sprite customGrassSprite;
+        public Sprite customLongGrassSprite;
         public Sprite customBushSprite;
         public Sprite customPineTreeSprite;
 
@@ -398,6 +400,7 @@ namespace IsometricGame.Tilemap
 
             OutdoorInfiniteTerrain terrain = outsideGroup.AddComponent<OutdoorInfiniteTerrain>();
             terrain.grassSprite = customGrassSprite;
+            terrain.longGrassSprite = customLongGrassSprite;
             terrain.bushSprite = customBushSprite;
             terrain.pineTreeSprite = customPineTreeSprite;
             terrain.doorSprite = customDoorSprite;
@@ -437,6 +440,7 @@ namespace IsometricGame.Tilemap
         private Sprite GetSpriteForType(TileType type)
         {
             if (type == TileType.Grass && customGrassSprite != null) return customGrassSprite;
+            if (type == TileType.LongGrass && customLongGrassSprite != null) return customLongGrassSprite;
             if (type == TileType.Bush && customBushSprite != null) return customBushSprite;
             if (type == TileType.RoomFloor && customFloorSprite != null) return customFloorSprite;
             if (type == TileType.WallLeft && customWallLeftSprite != null) return customWallLeftSprite;
@@ -520,6 +524,10 @@ namespace IsometricGame.Tilemap
             if (customGrassSprite == null)
             {
                 customGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile.png");
+            }
+            if (customLongGrassSprite == null)
+            {
+                customLongGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/long grass small tile.png");
             }
             if (customBushSprite == null)
             {

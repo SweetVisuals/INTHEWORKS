@@ -55,8 +55,19 @@ namespace IsometricGame.Tilemap
         [SerializeField] private float treeColliderRadius = 0.14f;
         [SerializeField] private Vector2 treeColliderOffset = new Vector2(0f, 0.08f);
 
+        [Header("Procedural Long Grass Overlay (Rare Clusters ~2.5%)")]
+        [Tooltip("Scale of Perlin noise for long grass patches (smaller = larger patch radius).")]
+        [SerializeField] private float longGrassNoiseScale = 0.16f;
+        [Tooltip("Threshold above which a long grass cluster patch forms.")]
+        [SerializeField] private float longGrassClusterThreshold = 0.65f;
+        [Tooltip("Spawn probability within cluster patches (~0.24 yields ~2.5% overall spawn rate).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float longGrassSpawnProbability = 0.24f;
+        [SerializeField] private int longGrassSeed = 9999;
+
         [Header("Sprites")]
         public Sprite grassSprite;
+        public Sprite longGrassSprite;
         public Sprite bushSprite;
         public Sprite pineTreeSprite;
         public Sprite doorSprite;
@@ -75,6 +86,10 @@ namespace IsometricGame.Tilemap
         public float TreeThreshold { get => treeThreshold; set => treeThreshold = value; }
         public float TreeSpawnProbability { get => treeSpawnProbability; set => treeSpawnProbability = value; }
         public int TreeSeed { get => treeSeed; set => treeSeed = value; }
+        public float LongGrassNoiseScale { get => longGrassNoiseScale; set => longGrassNoiseScale = value; }
+        public float LongGrassClusterThreshold { get => longGrassClusterThreshold; set => longGrassClusterThreshold = value; }
+        public float LongGrassSpawnProbability { get => longGrassSpawnProbability; set => longGrassSpawnProbability = value; }
+        public int LongGrassSeed { get => longGrassSeed; set => longGrassSeed = value; }
         public float DoorClearRadius { get => doorClearRadius; set => doorClearRadius = value; }
 
         private void Awake()
@@ -120,6 +135,10 @@ namespace IsometricGame.Tilemap
             if (grassSprite == null)
             {
                 grassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile.png");
+            }
+            if (longGrassSprite == null)
+            {
+                longGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/long grass small tile.png");
             }
             if (bushSprite == null)
             {
@@ -267,7 +286,13 @@ namespace IsometricGame.Tilemap
                     // 1. Spawn Grass Tile
                     SpawnGrassTile(chunkObj.transform, x, y);
 
-                    // 2. Procedural Vegetation (Pine Trees & Bushes)
+                    // 2. Procedural Long Grass Overlay (rare clusters ~2.5% spawn rate)
+                    if (ShouldSpawnLongGrass(x, y))
+                    {
+                        SpawnLongGrassTile(chunkObj.transform, x, y);
+                    }
+
+                    // 3. Procedural Vegetation (Pine Trees & Bushes)
                     float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
                     if (distToDoor > doorClearRadius)
                     {
@@ -330,6 +355,54 @@ namespace IsometricGame.Tilemap
             SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
             sr.sprite = grassSprite;
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000);
+        }
+
+        public bool ShouldSpawnLongGrass(int x, int y)
+        {
+            if (longGrassSprite == null) return false;
+
+            float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
+            if (distToDoor <= doorClearRadius) return false;
+
+            float cnx = (x + longGrassSeed * 47f) * longGrassNoiseScale;
+            float cny = (y + longGrassSeed * 47f) * longGrassNoiseScale;
+            float clusterNoise = Mathf.PerlinNoise(cnx, cny);
+
+            if (clusterNoise <= longGrassClusterThreshold) return false;
+
+            // Deterministic pseudo-random roll within the cluster patch (~24% roll * ~10.5% zone = ~2.5% spawn rate)
+            float roll = DeterministicRoll(x, y, longGrassSeed);
+            return roll < longGrassSpawnProbability;
+        }
+
+        private float DeterministicRoll(int x, int y, int seed)
+        {
+            unchecked
+            {
+                int h = seed;
+                h = h * 31 + x;
+                h = h * 31 + y;
+                h = (h ^ (h >> 16)) * 0x45d9f3b;
+                h = (h ^ (h >> 16)) * 0x45d9f3b;
+                h = h ^ (h >> 16);
+                return (float)((h & 0x7FFFFFFF) % 10000) / 10000f;
+            }
+        }
+
+        private void SpawnLongGrassTile(Transform parent, int gridX, int gridY)
+        {
+            if (longGrassSprite == null) return;
+
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            GameObject tileObj = new GameObject($"LongGrass_{gridX}_{gridY}");
+            tileObj.transform.SetParent(parent, false);
+            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+
+            SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
+            sr.sprite = longGrassSprite;
+            // Sitting at layerOffset = -8000 + 1 renders directly on top of the base grass tile (-8000)
+            // but far below characters/props (>= 0) and behind tiles closer to the camera.
+            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 1;
         }
 
         private void SpawnBushTile(Transform parent, int gridX, int gridY)
