@@ -481,7 +481,7 @@ MonoBehaviour:
   roomWidth: 4
   roomDepth: 4
   wallHeight: 3
-  doorColumn: -1
+  doorColumn: 2
   windowColumn: -1
   customFloorSprite: {fileID: 21300000, guid: dbc575245a1bd4546bf44451b2c80401, type: 3}
   customWallLeftSprite: {fileID: 21300000, guid: 21765f7f528822d4ab58d0f1eb6a5745, type: 3}

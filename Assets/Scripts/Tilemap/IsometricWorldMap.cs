@@ -45,7 +45,7 @@ namespace IsometricGame.Tilemap
 
         [Header("Back-Left Wall Features")]
         [Tooltip("Grid X index on the Back-Left wall to place a door (-1 for solid continuous wall)")]
-        [SerializeField] private int doorColumn = -1;
+        [SerializeField] private int doorColumn = 2;
         [Tooltip("Grid X index on the Back-Left wall to place a window (-1 for solid continuous wall)")]
         [SerializeField] private int windowColumn = -1;
 
@@ -156,23 +156,20 @@ namespace IsometricGame.Tilemap
             int blWallY = roomOrigin.y + roomDepth - 1;
             for (int x = roomOrigin.x + roomWidth - 1; x >= roomOrigin.x; x--)
             {
+                // Standard solid wall stacked wallHeight tiles high
+                for (int h = 0; h < wallHeight; h++)
+                {
+                    SpawnTile(roomGroup.transform, x, blWallY, h, TileType.WallLeft, 0);
+                }
+
+                // Overlay door or window void if configured for this column
                 if (x == doorColumn && customDoorSprite != null)
                 {
-                    // Standalone door tile (no extra wall tiles stacked above)
-                    SpawnTile(roomGroup.transform, x, blWallY, 0, TileType.WallDoor, 0);
+                    SpawnTile(roomGroup.transform, x, blWallY, 0, TileType.WallDoor, 25);
                 }
                 else if (x == windowColumn && customWindowSprite != null)
                 {
-                    // Standalone window tile (no extra wall tiles stacked above)
-                    SpawnTile(roomGroup.transform, x, blWallY, 0, TileType.WallWindow, 0);
-                }
-                else
-                {
-                    // Standard solid wall stacked wallHeight tiles high
-                    for (int h = 0; h < wallHeight; h++)
-                    {
-                        SpawnTile(roomGroup.transform, x, blWallY, h, TileType.WallLeft, 0);
-                    }
+                    SpawnTile(roomGroup.transform, x, blWallY, 0, TileType.WallWindow, 25);
                 }
             }
 

@@ -27,12 +27,12 @@ namespace IsometricGame.Editor
             worldMap.customFloorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wooden floor tile 32x32.png");
             worldMap.customWallLeftSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/left wall tile 32x32.png");
             worldMap.customWallRightSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/right wall tile 32x32.png");
-            worldMap.customDoorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/left wall tile with door 32x32.png");
-            worldMap.customWindowSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/left wall tile with window 32x33.png");
+            worldMap.customDoorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/door black void.png");
+            worldMap.customWindowSprite = null;
             worldMap.RoomWidth = 4;
             worldMap.RoomDepth = 4;
             worldMap.WallHeight = 3;
-            worldMap.DoorColumn = -1;
+            worldMap.DoorColumn = 2;
             worldMap.WindowColumn = -1;
             worldMap.GenerateOpenWorld = false;
             worldMap.GenerateWorldMap();
