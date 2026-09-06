@@ -458,6 +458,8 @@ namespace IsometricGame.Tilemap
 
             SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
             sr.sprite = longGrassSprite;
+            // 50% random horizontal flip for natural organic variation
+            sr.flipX = DeterministicRoll(gridX, gridY, longGrassSeed + 456) < 0.5f;
             // Sitting at layerOffset = -8000 + 1 renders directly on top of the base grass tile (-8000)
             // but far below characters/props (>= 0) and behind tiles closer to the camera.
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 1;
@@ -492,6 +494,8 @@ namespace IsometricGame.Tilemap
 
             SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
             sr.sprite = shortGrassSprite;
+            // 50% random horizontal flip for natural organic variation
+            sr.flipX = DeterministicRoll(gridX, gridY, shortGrassSeed + 789) < 0.5f;
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 1;
         }
 
@@ -527,6 +531,8 @@ namespace IsometricGame.Tilemap
 
             SpriteRenderer sr = foliageObj.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
+            // 50% random horizontal flip for natural organic variation
+            sr.flipX = DeterministicRoll(gridX, gridY, tinyFoliageSeed + variant * 77) < 0.5f;
             // Sitting at layerOffset = -8000 + 2 places tiny foliage directly on top of base grass and tile overlays
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 2;
         }
@@ -542,7 +548,7 @@ namespace IsometricGame.Tilemap
 
             SpriteRenderer sr = bushObj.AddComponent<SpriteRenderer>();
             sr.sprite = bushSprite;
-            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, 10);
+            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, 45);
 
             // Walk-through trigger collider: player passes through with smooth 25% opacity reduction
             CircleCollider2D col = bushObj.AddComponent<CircleCollider2D>();

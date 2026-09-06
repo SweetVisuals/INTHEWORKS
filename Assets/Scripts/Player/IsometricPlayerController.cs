@@ -119,6 +119,7 @@ namespace IsometricGame.Player
         public bool IsMoving => currentVelocity.sqrMagnitude > 0.01f;
         public CharacterFacing Facing => currentFacing;
         public bool InputEnabled => inputEnabled;
+        public SpriteRenderer CharacterRenderer => characterRenderer;
         public float WalkEnergyDrainRate { get => walkEnergyDrainRate; set => walkEnergyDrainRate = value; }
         public float ExhaustedSpeedMultiplier { get => exhaustedSpeedMultiplier; set => exhaustedSpeedMultiplier = value; }
         public bool IsExhausted => IsometricGame.UI.EnergyBarUI.Instance != null && IsometricGame.UI.EnergyBarUI.Instance.CurrentEnergy <= 0.001f;

@@ -25,6 +25,8 @@ namespace IsometricGame.Environment
         private SpriteRenderer spriteRenderer;
         private readonly HashSet<Collider2D> overlappingColliders = new HashSet<Collider2D>();
         private float currentAlpha = 1.0f;
+        private int originalSortingOrder;
+        private bool originalOrderCaptured = false;
 
         public float WalkThroughAlpha
         {
@@ -38,6 +40,20 @@ namespace IsometricGame.Environment
             if (spriteRenderer != null)
             {
                 currentAlpha = spriteRenderer.color.a;
+            }
+        }
+
+        private void Start()
+        {
+            CaptureOriginalSortingOrder();
+        }
+
+        private void CaptureOriginalSortingOrder()
+        {
+            if (!originalOrderCaptured && spriteRenderer != null)
+            {
+                originalSortingOrder = spriteRenderer.sortingOrder;
+                originalOrderCaptured = true;
             }
         }
 
@@ -72,13 +88,33 @@ namespace IsometricGame.Environment
         {
             if (spriteRenderer == null) return;
 
+            CaptureOriginalSortingOrder();
+
             // Clean up any destroyed or disabled colliders
             if (overlappingColliders.Count > 0)
             {
                 overlappingColliders.RemoveWhere(c => c == null || !c.enabled || !c.gameObject.activeInHierarchy);
             }
 
-            float targetAlpha = overlappingColliders.Count > 0 ? walkThroughAlpha : normalAlpha;
+            bool hasPlayerInside = overlappingColliders.Count > 0;
+            float targetAlpha = hasPlayerInside ? walkThroughAlpha : normalAlpha;
+
+            if (hasPlayerInside)
+            {
+                // Ensure bush renders in front to cover the player sprite while inside
+                var player = IsometricGame.Player.IsometricPlayerController.Instance;
+                if (player != null && player.CharacterRenderer != null)
+                {
+                    spriteRenderer.sortingOrder = Mathf.Max(originalSortingOrder, player.CharacterRenderer.sortingOrder + 2);
+                }
+            }
+            else
+            {
+                if (originalOrderCaptured)
+                {
+                    spriteRenderer.sortingOrder = originalSortingOrder;
+                }
+            }
 
             if (!Mathf.Approximately(currentAlpha, targetAlpha))
             {
@@ -97,6 +133,10 @@ namespace IsometricGame.Environment
                 Color c = spriteRenderer.color;
                 c.a = normalAlpha;
                 spriteRenderer.color = c;
+                if (originalOrderCaptured)
+                {
+                    spriteRenderer.sortingOrder = originalSortingOrder;
+                }
             }
         }
     }
