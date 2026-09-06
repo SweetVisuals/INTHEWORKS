@@ -22,7 +22,9 @@ namespace IsometricGame.Tilemap
         StackingBox = 13,
         BlueBed = 14,
         Bush = 15,
-        LongGrass = 16
+        LongGrass = 16,
+        ShortGrass = 17,
+        TinyFoliage = 18
     }
 
     /// <summary>
@@ -89,6 +91,10 @@ namespace IsometricGame.Tilemap
         public Sprite customBedSprite;
         public Sprite customGrassSprite;
         public Sprite customLongGrassSprite;
+        public Sprite customShortGrassSprite;
+        public Sprite customTinyFoliage1Sprite;
+        public Sprite customTinyFoliage2Sprite;
+        public Sprite customTinyFoliage3Sprite;
         public Sprite customBushSprite;
         public Sprite customPineTreeSprite;
 
@@ -401,6 +407,10 @@ namespace IsometricGame.Tilemap
             OutdoorInfiniteTerrain terrain = outsideGroup.AddComponent<OutdoorInfiniteTerrain>();
             terrain.grassSprite = customGrassSprite;
             terrain.longGrassSprite = customLongGrassSprite;
+            terrain.shortGrassSprite = customShortGrassSprite;
+            terrain.tinyFoliage1Sprite = customTinyFoliage1Sprite;
+            terrain.tinyFoliage2Sprite = customTinyFoliage2Sprite;
+            terrain.tinyFoliage3Sprite = customTinyFoliage3Sprite;
             terrain.bushSprite = customBushSprite;
             terrain.pineTreeSprite = customPineTreeSprite;
             terrain.doorSprite = customDoorSprite;
@@ -441,6 +451,7 @@ namespace IsometricGame.Tilemap
         {
             if (type == TileType.Grass && customGrassSprite != null) return customGrassSprite;
             if (type == TileType.LongGrass && customLongGrassSprite != null) return customLongGrassSprite;
+            if (type == TileType.ShortGrass && customShortGrassSprite != null) return customShortGrassSprite;
             if (type == TileType.Bush && customBushSprite != null) return customBushSprite;
             if (type == TileType.RoomFloor && customFloorSprite != null) return customFloorSprite;
             if (type == TileType.WallLeft && customWallLeftSprite != null) return customWallLeftSprite;
@@ -528,6 +539,22 @@ namespace IsometricGame.Tilemap
             if (customLongGrassSprite == null)
             {
                 customLongGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/long grass small tile.png");
+            }
+            if (customShortGrassSprite == null)
+            {
+                customShortGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/short grass small tile.png");
+            }
+            if (customTinyFoliage1Sprite == null)
+            {
+                customTinyFoliage1Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 1.png");
+            }
+            if (customTinyFoliage2Sprite == null)
+            {
+                customTinyFoliage2Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 2.png");
+            }
+            if (customTinyFoliage3Sprite == null)
+            {
+                customTinyFoliage3Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 3.png");
             }
             if (customBushSprite == null)
             {

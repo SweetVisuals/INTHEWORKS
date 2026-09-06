@@ -55,19 +55,42 @@ namespace IsometricGame.Tilemap
         [SerializeField] private float treeColliderRadius = 0.14f;
         [SerializeField] private Vector2 treeColliderOffset = new Vector2(0f, 0.08f);
 
-        [Header("Procedural Long Grass Overlay (Rare Clusters ~2.5%)")]
+        [Header("Procedural Long Grass Overlay (Rarer Clusters ~0.9%)")]
         [Tooltip("Scale of Perlin noise for long grass patches (smaller = larger patch radius).")]
-        [SerializeField] private float longGrassNoiseScale = 0.16f;
-        [Tooltip("Threshold above which a long grass cluster patch forms.")]
-        [SerializeField] private float longGrassClusterThreshold = 0.65f;
-        [Tooltip("Spawn probability within cluster patches (~0.24 yields ~2.5% overall spawn rate).")]
+        [SerializeField] private float longGrassNoiseScale = 0.18f;
+        [Tooltip("Threshold above which a long grass cluster patch forms (higher = sparser patches).")]
+        [SerializeField] private float longGrassClusterThreshold = 0.72f;
+        [Tooltip("Spawn probability within cluster patches (~0.18 yields ~0.9% overall spawn rate).")]
         [Range(0f, 1f)]
-        [SerializeField] private float longGrassSpawnProbability = 0.24f;
+        [SerializeField] private float longGrassSpawnProbability = 0.18f;
         [SerializeField] private int longGrassSeed = 9999;
+
+        [Header("Procedural Short Grass Overlay (Natural Clusters ~3.2%)")]
+        [Tooltip("Scale of Perlin noise for short grass patches.")]
+        [SerializeField] private float shortGrassNoiseScale = 0.16f;
+        [Tooltip("Threshold above which a short grass cluster patch forms.")]
+        [SerializeField] private float shortGrassClusterThreshold = 0.65f;
+        [Tooltip("Spawn probability within short grass cluster patches.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float shortGrassSpawnProbability = 0.30f;
+        [SerializeField] private int shortGrassSeed = 7777;
+
+        [Header("Procedural Tiny Grass Foliage (1% Spawn Chance Each)")]
+        [Range(0f, 1f)]
+        [SerializeField] private float tinyFoliage1SpawnRate = 0.01f;
+        [Range(0f, 1f)]
+        [SerializeField] private float tinyFoliage2SpawnRate = 0.01f;
+        [Range(0f, 1f)]
+        [SerializeField] private float tinyFoliage3SpawnRate = 0.01f;
+        [SerializeField] private int tinyFoliageSeed = 5555;
 
         [Header("Sprites")]
         public Sprite grassSprite;
         public Sprite longGrassSprite;
+        public Sprite shortGrassSprite;
+        public Sprite tinyFoliage1Sprite;
+        public Sprite tinyFoliage2Sprite;
+        public Sprite tinyFoliage3Sprite;
         public Sprite bushSprite;
         public Sprite pineTreeSprite;
         public Sprite doorSprite;
@@ -90,6 +113,14 @@ namespace IsometricGame.Tilemap
         public float LongGrassClusterThreshold { get => longGrassClusterThreshold; set => longGrassClusterThreshold = value; }
         public float LongGrassSpawnProbability { get => longGrassSpawnProbability; set => longGrassSpawnProbability = value; }
         public int LongGrassSeed { get => longGrassSeed; set => longGrassSeed = value; }
+        public float ShortGrassNoiseScale { get => shortGrassNoiseScale; set => shortGrassNoiseScale = value; }
+        public float ShortGrassClusterThreshold { get => shortGrassClusterThreshold; set => shortGrassClusterThreshold = value; }
+        public float ShortGrassSpawnProbability { get => shortGrassSpawnProbability; set => shortGrassSpawnProbability = value; }
+        public int ShortGrassSeed { get => shortGrassSeed; set => shortGrassSeed = value; }
+        public float TinyFoliage1SpawnRate { get => tinyFoliage1SpawnRate; set => tinyFoliage1SpawnRate = value; }
+        public float TinyFoliage2SpawnRate { get => tinyFoliage2SpawnRate; set => tinyFoliage2SpawnRate = value; }
+        public float TinyFoliage3SpawnRate { get => tinyFoliage3SpawnRate; set => tinyFoliage3SpawnRate = value; }
+        public int TinyFoliageSeed { get => tinyFoliageSeed; set => tinyFoliageSeed = value; }
         public float DoorClearRadius { get => doorClearRadius; set => doorClearRadius = value; }
 
         private void Awake()
@@ -139,6 +170,22 @@ namespace IsometricGame.Tilemap
             if (longGrassSprite == null)
             {
                 longGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/long grass small tile.png");
+            }
+            if (shortGrassSprite == null)
+            {
+                shortGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/short grass small tile.png");
+            }
+            if (tinyFoliage1Sprite == null)
+            {
+                tinyFoliage1Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 1.png");
+            }
+            if (tinyFoliage2Sprite == null)
+            {
+                tinyFoliage2Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 2.png");
+            }
+            if (tinyFoliage3Sprite == null)
+            {
+                tinyFoliage3Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 3.png");
             }
             if (bushSprite == null)
             {
@@ -286,14 +333,24 @@ namespace IsometricGame.Tilemap
                     // 1. Spawn Grass Tile
                     SpawnGrassTile(chunkObj.transform, x, y);
 
-                    // 2. Procedural Long Grass Overlay (rare clusters ~2.5% spawn rate)
-                    if (ShouldSpawnLongGrass(x, y))
+                    float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
+                    if (distToDoor > doorClearRadius)
                     {
-                        SpawnLongGrassTile(chunkObj.transform, x, y);
+                        // 2. Procedural Grass Overlays: Rare Long Grass (~0.9%) or Natural Short Grass (~3.2%)
+                        if (ShouldSpawnLongGrass(x, y))
+                        {
+                            SpawnLongGrassTile(chunkObj.transform, x, y);
+                        }
+                        else if (ShouldSpawnShortGrass(x, y))
+                        {
+                            SpawnShortGrassTile(chunkObj.transform, x, y);
+                        }
+
+                        // 3. Procedural Tiny Grass Foliage (1% spawn chance on each of 3 variants)
+                        SpawnTinyFoliageIfRolled(chunkObj.transform, x, y);
                     }
 
-                    // 3. Procedural Vegetation (Pine Trees & Bushes)
-                    float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
+                    // 4. Procedural Vegetation (Pine Trees & Bushes)
                     if (distToDoor > doorClearRadius)
                     {
                         // A. Procedural Pine Trees in organic bunches/groves
@@ -403,6 +460,74 @@ namespace IsometricGame.Tilemap
             // Sitting at layerOffset = -8000 + 1 renders directly on top of the base grass tile (-8000)
             // but far below characters/props (>= 0) and behind tiles closer to the camera.
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 1;
+        }
+
+        public bool ShouldSpawnShortGrass(int x, int y)
+        {
+            if (shortGrassSprite == null) return false;
+
+            float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
+            if (distToDoor <= doorClearRadius) return false;
+
+            float cnx = (x + shortGrassSeed * 37f) * shortGrassNoiseScale;
+            float cny = (y + shortGrassSeed * 37f) * shortGrassNoiseScale;
+            float clusterNoise = Mathf.PerlinNoise(cnx, cny);
+
+            if (clusterNoise <= shortGrassClusterThreshold) return false;
+
+            // Deterministic pseudo-random roll within the short grass cluster patch (~30% roll * ~10.5% zone = ~3.2% spawn rate)
+            float roll = DeterministicRoll(x, y, shortGrassSeed);
+            return roll < shortGrassSpawnProbability;
+        }
+
+        private void SpawnShortGrassTile(Transform parent, int gridX, int gridY)
+        {
+            if (shortGrassSprite == null) return;
+
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            GameObject tileObj = new GameObject($"ShortGrass_{gridX}_{gridY}");
+            tileObj.transform.SetParent(parent, false);
+            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+
+            SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
+            sr.sprite = shortGrassSprite;
+            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 1;
+        }
+
+        private void SpawnTinyFoliageIfRolled(Transform parent, int gridX, int gridY)
+        {
+            // Variant 1 (1% independent spawn chance)
+            if (tinyFoliage1Sprite != null && DeterministicRoll(gridX, gridY, tinyFoliageSeed + 101) < tinyFoliage1SpawnRate)
+            {
+                SpawnTinyFoliageTile(parent, gridX, gridY, tinyFoliage1Sprite, 1, -0.12f, 0.04f);
+            }
+
+            // Variant 2 (1% independent spawn chance)
+            if (tinyFoliage2Sprite != null && DeterministicRoll(gridX, gridY, tinyFoliageSeed + 202) < tinyFoliage2SpawnRate)
+            {
+                SpawnTinyFoliageTile(parent, gridX, gridY, tinyFoliage2Sprite, 2, 0.10f, -0.03f);
+            }
+
+            // Variant 3 (1% independent spawn chance)
+            if (tinyFoliage3Sprite != null && DeterministicRoll(gridX, gridY, tinyFoliageSeed + 303) < tinyFoliage3SpawnRate)
+            {
+                SpawnTinyFoliageTile(parent, gridX, gridY, tinyFoliage3Sprite, 3, -0.02f, -0.06f);
+            }
+        }
+
+        private void SpawnTinyFoliageTile(Transform parent, int gridX, int gridY, Sprite sprite, int variant, float offsetX, float offsetY)
+        {
+            if (sprite == null) return;
+
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            GameObject foliageObj = new GameObject($"TinyFoliage_{variant}_{gridX}_{gridY}");
+            foliageObj.transform.SetParent(parent, false);
+            foliageObj.transform.position = new Vector3(worldPos.x + offsetX, worldPos.y + offsetY, 0f);
+
+            SpriteRenderer sr = foliageObj.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            // Sitting at layerOffset = -8000 + 2 places tiny foliage directly on top of base grass and tile overlays
+            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 2;
         }
 
         private void SpawnBushTile(Transform parent, int gridX, int gridY)
