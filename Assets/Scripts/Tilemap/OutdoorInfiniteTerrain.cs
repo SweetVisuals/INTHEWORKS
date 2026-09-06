@@ -75,13 +75,13 @@ namespace IsometricGame.Tilemap
         [SerializeField] private float shortGrassSpawnProbability = 0.30f;
         [SerializeField] private int shortGrassSeed = 7777;
 
-        [Header("Procedural Tiny Grass Foliage (1% Spawn Chance Each)")]
+        [Header("Procedural Tiny Grass Foliage (Subtle ~0.3% Chance Each)")]
         [Range(0f, 1f)]
-        [SerializeField] private float tinyFoliage1SpawnRate = 0.01f;
+        [SerializeField] private float tinyFoliage1SpawnRate = 0.003f;
         [Range(0f, 1f)]
-        [SerializeField] private float tinyFoliage2SpawnRate = 0.01f;
+        [SerializeField] private float tinyFoliage2SpawnRate = 0.003f;
         [Range(0f, 1f)]
-        [SerializeField] private float tinyFoliage3SpawnRate = 0.01f;
+        [SerializeField] private float tinyFoliage3SpawnRate = 0.003f;
         [SerializeField] private int tinyFoliageSeed = 5555;
 
         [Header("Procedural Stone Quad Plates Path (Batches of Max 3)")]
@@ -94,14 +94,14 @@ namespace IsometricGame.Tilemap
         [Tooltip("Grid spacing (cell size) between possible batch seed locations.")]
         [SerializeField] private int stonePathCellSize = 6;
 
-        [Header("Procedural Small Rocks Overlay (1, 2, or All 3 Rocks)")]
+        [Header("Procedural Small Rocks Overlay (Rare Clusters ~0.6%)")]
         [Tooltip("Scale of Perlin noise for small rock patches.")]
         [SerializeField] private float smallRocksNoiseScale = 0.16f;
-        [Tooltip("Threshold above which a small rock patch forms.")]
-        [SerializeField] private float smallRocksClusterThreshold = 0.66f;
-        [Tooltip("Spawn probability within rock cluster patches (~0.25 yields ~2.0% spawn rate).")]
+        [Tooltip("Threshold above which a small rock patch forms (higher = sparser patches).")]
+        [SerializeField] private float smallRocksClusterThreshold = 0.75f;
+        [Tooltip("Spawn probability within rock cluster patches (~0.12 yields ~0.6% overall spawn rate).")]
         [Range(0f, 1f)]
-        [SerializeField] private float smallRocksSpawnProbability = 0.25f;
+        [SerializeField] private float smallRocksSpawnProbability = 0.12f;
         [SerializeField] private int smallRocksSeed = 4444;
 
         [Header("Sprites")]
@@ -415,23 +415,26 @@ namespace IsometricGame.Tilemap
                         }
                         else
                         {
-                            // 3. Procedural Small Rocks Overlay (1, 2, or all 3 rocks)
+                            // 3. Procedural Small Rocks Overlay (rare ~0.6% clusters)
                             if (ShouldSpawnSmallRocks(x, y))
                             {
                                 SpawnSmallRocksTile(chunkObj.transform, x, y);
                             }
-                            // 4. Procedural Grass Overlays: Rare Long Grass (~0.9%) or Natural Short Grass (~3.2%)
-                            else if (ShouldSpawnLongGrass(x, y))
+                            else
                             {
-                                SpawnLongGrassTile(chunkObj.transform, x, y);
-                            }
-                            else if (ShouldSpawnShortGrass(x, y))
-                            {
-                                SpawnShortGrassTile(chunkObj.transform, x, y);
-                            }
+                                // 4. Procedural Grass Overlays: Rare Long Grass (~0.9%) or Natural Short Grass (~3.2%)
+                                if (ShouldSpawnLongGrass(x, y))
+                                {
+                                    SpawnLongGrassTile(chunkObj.transform, x, y);
+                                }
+                                else if (ShouldSpawnShortGrass(x, y))
+                                {
+                                    SpawnShortGrassTile(chunkObj.transform, x, y);
+                                }
 
-                            // 5. Procedural Tiny Grass Foliage (1% spawn chance on each of 3 variants)
-                            SpawnTinyFoliageIfRolled(chunkObj.transform, x, y);
+                                // 5. Procedural Tiny Grass Foliage (subtle ~0.3% spawn chance on each of 3 variants)
+                                SpawnTinyFoliageIfRolled(chunkObj.transform, x, y);
+                            }
                         }
                     }
 
@@ -717,17 +720,17 @@ namespace IsometricGame.Tilemap
             Sprite chosenSprite = null;
             string label = "Rocks";
 
-            if (roll < 0.45f)
+            if (roll < 0.65f)
             {
-                // 1 Rock (pick among Rock 1, Rock 2, Rock 3)
+                // 1 Rock (65% of rock spawns - single rock for lighter visual presence)
                 int subRoll = (int)(DeterministicRoll(gridX, gridY, smallRocksSeed + 444) * 3f);
                 if (subRoll == 0) { chosenSprite = smallRock1Sprite ?? smallRocksClusterSprite; label = "Rock1"; }
                 else if (subRoll == 1) { chosenSprite = smallRock2Sprite ?? smallRocksClusterSprite; label = "Rock2"; }
                 else { chosenSprite = smallRock3Sprite ?? smallRocksClusterSprite; label = "Rock3"; }
             }
-            else if (roll < 0.80f)
+            else if (roll < 0.90f)
             {
-                // 2 Rocks (pick among 1&2, 1&3, 2&3)
+                // 2 Rocks (25% of rock spawns)
                 int subRoll = (int)(DeterministicRoll(gridX, gridY, smallRocksSeed + 555) * 3f);
                 if (subRoll == 0) { chosenSprite = smallRocks12Sprite ?? smallRocksClusterSprite; label = "Rocks12"; }
                 else if (subRoll == 1) { chosenSprite = smallRocks13Sprite ?? smallRocksClusterSprite; label = "Rocks13"; }
@@ -735,7 +738,7 @@ namespace IsometricGame.Tilemap
             }
             else
             {
-                // All 3 Rocks together
+                // All 3 Rocks together (10% of rock spawns - rare cluster)
                 chosenSprite = smallRocksClusterSprite ?? smallRock1Sprite;
                 label = "RocksCluster";
             }
