@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 675b84cb3c63673468c85ab6af531fab
+guid: c1b10d3bbe5ebb942865be013333ad1e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -2968490938848428571
-    second: tiny grass foliage 1_0
+      213: 8169039119329631175
+    second: pine tree test 1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -40,9 +40,9 @@ TextureImporter:
     filterMode: 0
     aniso: 1
     mipBias: 0
-    wrapU: 0
-    wrapV: 0
-    wrapW: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
@@ -50,7 +50,7 @@ TextureImporter:
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 9
-  spritePivot: {x: 0.5, y: 0.5}
+  spritePivot: {x: 0.5, y: 0.2083333}
   spritePixelsToUnits: 32
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
@@ -102,13 +102,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: tiny grass foliage 1_0
+      name: pine tree test 1_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 8
-        height: 8
+        width: 32
+        height: 48
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -117,8 +117,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5ed39f6083dcdc6d0800000000000000
-      internalID: -2968490938848428571
+      spriteID: 7cb99ef2cc14e5170800000000000000
+      internalID: 8169039119329631175
       vertices: []
       indices: 
       edges: []

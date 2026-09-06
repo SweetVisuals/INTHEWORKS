@@ -64,12 +64,12 @@ namespace IsometricGame.UI
 
         [Header("XP Stats")]
         [SerializeField] private int currentLevel = 1;
-        [SerializeField] private float currentXp = 35f;
+        [SerializeField] private float currentXp = 0f;
         [SerializeField] private float maxXp = 100f;
         [SerializeField] private float fillLerpSpeed = 8f;
 
-        private float targetFill = 0.35f;
-        private float displayedFill = 0.35f;
+        private float targetFill = 0f;
+        private float displayedFill = 0f;
 
         public int CurrentLevel => currentLevel;
         public float CurrentXp => currentXp;

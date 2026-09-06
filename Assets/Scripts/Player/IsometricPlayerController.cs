@@ -92,6 +92,12 @@ namespace IsometricGame.Player
         [SerializeField] private float dustRate = 14.0f;
         [SerializeField] private Vector2 dustEmitterOffset = new Vector2(0f, -0.025f);
 
+        [Header("Energy & Stamina")]
+        [Tooltip("Energy consumed per second while moving slowly over time.")]
+        [SerializeField] private float walkEnergyDrainRate = 1.0f;
+        [Tooltip("Speed multiplier when energy is completely depleted (0.5 = 50% slower).")]
+        [SerializeField] private float exhaustedSpeedMultiplier = 0.5f;
+
         private Rigidbody2D rb;
         private CircleCollider2D col;
         private ParticleSystem footstepParticles;
@@ -113,6 +119,9 @@ namespace IsometricGame.Player
         public bool IsMoving => currentVelocity.sqrMagnitude > 0.01f;
         public CharacterFacing Facing => currentFacing;
         public bool InputEnabled => inputEnabled;
+        public float WalkEnergyDrainRate { get => walkEnergyDrainRate; set => walkEnergyDrainRate = value; }
+        public float ExhaustedSpeedMultiplier { get => exhaustedSpeedMultiplier; set => exhaustedSpeedMultiplier = value; }
+        public bool IsExhausted => IsometricGame.UI.EnergyBarUI.Instance != null && IsometricGame.UI.EnergyBarUI.Instance.CurrentEnergy <= 0.001f;
 
         public void SetInputEnabled(bool enabled)
         {
@@ -407,9 +416,22 @@ namespace IsometricGame.Player
         private void Update()
         {
             ReadInput();
+            UpdateEnergyConsumption();
             UpdateAnimation();
             UpdateDepthSorting();
             UpdateFootstepParticles();
+        }
+
+        private void UpdateEnergyConsumption()
+        {
+            if (Application.isPlaying && IsMoving && rawInput.sqrMagnitude > 0.01f)
+            {
+                var energyUI = IsometricGame.UI.EnergyBarUI.Instance;
+                if (energyUI != null && energyUI.CurrentEnergy > 0f)
+                {
+                    energyUI.UseEnergy(walkEnergyDrainRate * Time.deltaTime);
+                }
+            }
         }
 
         private void UpdateFootstepParticles()
@@ -561,7 +583,18 @@ namespace IsometricGame.Player
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null) isSprinting = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
 #endif
+            bool isExhausted = IsExhausted;
+            if (isExhausted)
+            {
+                isSprinting = false; // Cannot sprint when depleted
+            }
+
             float targetSpeed = isSprinting ? runSpeed : walkSpeed;
+            if (isExhausted)
+            {
+                targetSpeed *= exhaustedSpeedMultiplier; // 50% slower walk
+            }
+
             Vector2 targetVelocity = moveDir * targetSpeed;
 
             if (snapToGridLanes && controlScheme == IsometricControlScheme.IsometricGrid && rawInput.sqrMagnitude > 0.01f)

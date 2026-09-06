@@ -516,7 +516,7 @@ MonoBehaviour:
   customBedSprite: {fileID: 21300000, guid: be9a69d82e8f3874885e84fb7ff77d35, type: 3}
   customGrassSprite: {fileID: 21300000, guid: d7ea08224d00f684fb79bd49187b1a00, type: 3}
   customBushSprite: {fileID: 21300000, guid: 1ea0e31a2891e1b4f9a7b6a14be97646, type: 3}
-  customPineTreeSprite: {fileID: 21300000, guid: 5c9d492d0f9e4f4498a2081d4988b30b, type: 3}
+  customPineTreeSprite: {fileID: 8169039119329631175, guid: c1b10d3bbe5ebb942865be013333ad1e, type: 3}
   addRoomBoundaries: 1
   mapRoot: {fileID: 0}
   roomPlane: {fileID: 0}

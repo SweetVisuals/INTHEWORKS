@@ -191,9 +191,10 @@ namespace IsometricGame.Tilemap
             {
                 bushSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/bush block.png");
             }
-            if (pineTreeSprite == null)
+            if (pineTreeSprite == null || pineTreeSprite.name == "pine tree")
             {
-                pineTreeSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/pine tree.png");
+                pineTreeSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/pine tree test 1.png")
+                              ?? IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/pine tree.png");
             }
             if (doorSprite == null)
             {
