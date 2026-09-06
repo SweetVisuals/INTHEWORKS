@@ -486,8 +486,8 @@ MonoBehaviour:
   customFloorSprite: {fileID: 21300000, guid: dbc575245a1bd4546bf44451b2c80401, type: 3}
   customWallLeftSprite: {fileID: 21300000, guid: 21765f7f528822d4ab58d0f1eb6a5745, type: 3}
   customWallRightSprite: {fileID: 21300000, guid: 6d4e6f2cc95ae064090f8c1bb436acf2, type: 3}
-  customDoorSprite: {fileID: 21300000, guid: b4608969e13a8b14f885a091ad330660, type: 3}
-  customWindowSprite: {fileID: 21300000, guid: 2ce4a138f9b910941bb43ba1a783b8a2, type: 3}
+  customDoorSprite: {fileID: 21300000, guid: 7949ae28e8a91fd4d9fb191a7af234b6, type: 3}
+  customWindowSprite: {fileID: 0}
   customGrassSprite: {fileID: 0}
   addRoomBoundaries: 1
   mapRoot: {fileID: 0}

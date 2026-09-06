@@ -305,11 +305,7 @@ namespace IsometricGame.Tilemap
             }
             if (customDoorSprite == null)
             {
-                customDoorSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/left wall tile with door 32x32.png");
-            }
-            if (customWindowSprite == null)
-            {
-                customWindowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/left wall tile with window 32x33.png");
+                customDoorSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/door black void.png");
             }
 #endif
         }
