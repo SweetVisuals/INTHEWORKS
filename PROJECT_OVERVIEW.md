@@ -38,6 +38,7 @@ Assets/
 │   │   └── MoneyUISetupEditor.cs           # Auto-ensures & bakes full GUI HUD in active scene
 │   ├── Environment/
 │   │   ├── BedInteraction.cs               # Bed interaction -> trigger sleep transition
+│   │   ├── BushTransparencyTrigger.cs      # Walk-through bush trigger with 25% opacity reduction
 │   │   ├── ComputerScreenFlicker.cs        # CRT flicker & ambient screen glow animation
 │   │   ├── DoorHandleInteraction.cs        # Door opening & room exit trigger
 │   │   ├── DrawerChestInteraction.cs       # Dresser chest interaction -> open inventory
@@ -183,6 +184,10 @@ The Top-Right HUD elements are stacked with uniform 4px vertical gaps:
    - Displays interaction popup on hover and toggles `ChestInventoryUI` modal.
 4. **Door & Transitions (`DoorHandleInteraction.cs`, `ZoneTransitionManager.cs`)**:
    - Smoothly teleports player between indoor room door and outdoor campsite door with fade transitions.
+5. **Outdoor Flora & Bushes (`OutdoorInfiniteTerrain.cs`, `BushTransparencyTrigger.cs`)**:
+   - **Walk-Through Bushes:** Bushes use trigger colliders rather than solid blocks, allowing unhindered player passage.
+   - **Per-Bush Opacity Reduction:** Walking through a bush smoothly reduces that specific bush's opacity by 25% (alpha $1.0 \rightarrow 0.75$), fading back to $1.0$ upon exiting.
+   - **Pine Trees:** Procedural groves with calibrated low-density distribution (`treeThreshold = 0.68f`, `treeSpawnProbability = 0.28f`) ensuring open, scenic walking clearings.
 
 ---
 

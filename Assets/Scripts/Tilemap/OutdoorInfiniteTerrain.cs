@@ -35,18 +35,21 @@ namespace IsometricGame.Tilemap
         [Tooltip("Threshold above which bushes spawn (higher = sparser, more open walkable space).")]
         [SerializeField] private float bushThreshold = 0.70f;
         [SerializeField] private int bushSeed = 42;
-        [Tooltip("Bush foot collision radius (compact circle for smooth sliding).")]
-        [SerializeField] private float bushColliderRadius = 0.12f;
-        [SerializeField] private Vector2 bushColliderOffset = new Vector2(0f, 0.05f);
+        [Tooltip("Bush walk-through trigger radius for opacity fading.")]
+        [SerializeField] private float bushTriggerRadius = 0.32f;
+        [SerializeField] private Vector2 bushTriggerOffset = new Vector2(0f, 0.12f);
+        [Tooltip("Opacity when player walks through (0.75 = 25% reduction).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float bushWalkThroughOpacity = 0.75f;
 
         [Header("Procedural Pine Trees (Groves & Bunches)")]
         [Tooltip("Scale of Perlin noise for tree groves (smaller = broader bunches).")]
         [SerializeField] private float treeNoiseScale = 0.14f;
-        [Tooltip("Threshold above which pine tree groves form.")]
-        [SerializeField] private float treeThreshold = 0.60f;
-        [Tooltip("Spawn probability within grove clusters targeting ~7% overall world spawn rate.")]
+        [Tooltip("Threshold above which pine tree groves form (higher = sparser, more open groves).")]
+        [SerializeField] private float treeThreshold = 0.68f;
+        [Tooltip("Spawn probability within grove clusters (lower = sparser, less dense trees).")]
         [Range(0f, 1f)]
-        [SerializeField] private float treeSpawnProbability = 0.48f;
+        [SerializeField] private float treeSpawnProbability = 0.28f;
         [SerializeField] private int treeSeed = 1337;
         [Tooltip("Tree trunk foot collision radius.")]
         [SerializeField] private float treeColliderRadius = 0.14f;
@@ -131,6 +134,8 @@ namespace IsometricGame.Tilemap
                 doorSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/wooden door (1).png")
                           ?? IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/wooden door.png");
             }
+            if (treeThreshold < 0.65f) treeThreshold = 0.68f;
+            if (treeSpawnProbability > 0.35f) treeSpawnProbability = 0.28f;
 #endif
         }
 
@@ -340,10 +345,14 @@ namespace IsometricGame.Tilemap
             sr.sprite = bushSprite;
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, 10);
 
-            // Compact foot circle collider: allows silky smooth navigation around bushes
+            // Walk-through trigger collider: player passes through with smooth 25% opacity reduction
             CircleCollider2D col = bushObj.AddComponent<CircleCollider2D>();
-            col.radius = bushColliderRadius;
-            col.offset = bushColliderOffset;
+            col.isTrigger = true;
+            col.radius = bushTriggerRadius;
+            col.offset = bushTriggerOffset;
+
+            var trigger = bushObj.AddComponent<IsometricGame.Environment.BushTransparencyTrigger>();
+            trigger.SetTargetOpacity(bushWalkThroughOpacity);
         }
 
         [Header("Tree Alignment Offset")]
