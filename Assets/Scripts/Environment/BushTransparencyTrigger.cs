@@ -5,16 +5,16 @@ namespace IsometricGame.Environment
 {
     /// <summary>
     /// Attached to individual outdoor bushes.
-    /// Allows the player to walk directly through the bush without collision,
-    /// and smoothly reduces the opacity of only this bush by 25% (alpha: 1.0 -> 0.75)
-    /// while the player is inside.
+    /// Allows the player to walk directly through the bush without solid collision,
+    /// slows the player down by 50% while walking or running through,
+    /// and ensures the bush covers the player sprite without lowering tile opacity.
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public class BushTransparencyTrigger : MonoBehaviour
     {
         [Header("Opacity Settings")]
-        [Tooltip("Alpha when player is inside the bush (25% reduction = 0.75f).")]
-        [SerializeField] private float walkThroughAlpha = 0.75f;
+        [Tooltip("Alpha when player is inside the bush (default = 1.0f, no opacity reduction).")]
+        [SerializeField] private float walkThroughAlpha = 1.0f;
 
         [Tooltip("Alpha when no player is overlapping (default = 1.0f).")]
         [SerializeField] private float normalAlpha = 1.0f;
@@ -27,6 +27,7 @@ namespace IsometricGame.Environment
         private float currentAlpha = 1.0f;
         private int originalSortingOrder;
         private bool originalOrderCaptured = false;
+        private bool hasSlowApplied = false;
 
         public float WalkThroughAlpha
         {
@@ -67,6 +68,7 @@ namespace IsometricGame.Environment
             if (IsPlayer(other))
             {
                 overlappingColliders.Add(other);
+                ApplyPlayerSlow();
             }
         }
 
@@ -75,6 +77,36 @@ namespace IsometricGame.Environment
             if (IsPlayer(other))
             {
                 overlappingColliders.Remove(other);
+                if (overlappingColliders.Count == 0)
+                {
+                    RemovePlayerSlow();
+                }
+            }
+        }
+
+        private void ApplyPlayerSlow()
+        {
+            if (!hasSlowApplied)
+            {
+                var player = IsometricGame.Player.IsometricPlayerController.Instance;
+                if (player != null)
+                {
+                    player.EnterBush();
+                    hasSlowApplied = true;
+                }
+            }
+        }
+
+        private void RemovePlayerSlow()
+        {
+            if (hasSlowApplied)
+            {
+                var player = IsometricGame.Player.IsometricPlayerController.Instance;
+                if (player != null)
+                {
+                    player.ExitBush();
+                }
+                hasSlowApplied = false;
             }
         }
 
@@ -97,6 +129,15 @@ namespace IsometricGame.Environment
             }
 
             bool hasPlayerInside = overlappingColliders.Count > 0;
+            if (hasPlayerInside && !hasSlowApplied)
+            {
+                ApplyPlayerSlow();
+            }
+            else if (!hasPlayerInside && hasSlowApplied)
+            {
+                RemovePlayerSlow();
+            }
+
             float targetAlpha = hasPlayerInside ? walkThroughAlpha : normalAlpha;
 
             if (hasPlayerInside)
@@ -127,6 +168,7 @@ namespace IsometricGame.Environment
 
         private void OnDisable()
         {
+            RemovePlayerSlow();
             overlappingColliders.Clear();
             if (spriteRenderer != null)
             {
@@ -138,6 +180,11 @@ namespace IsometricGame.Environment
                     spriteRenderer.sortingOrder = originalSortingOrder;
                 }
             }
+        }
+
+        private void OnDestroy()
+        {
+            RemovePlayerSlow();
         }
     }
 }

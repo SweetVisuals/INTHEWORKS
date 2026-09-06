@@ -98,6 +98,12 @@ namespace IsometricGame.Player
         [Tooltip("Speed multiplier when energy is completely depleted (0.5 = 50% slower).")]
         [SerializeField] private float exhaustedSpeedMultiplier = 0.5f;
 
+        [Header("Bush Slowdown Penalty")]
+        [Tooltip("Speed multiplier when walking or running through bushes (0.5 = 50% slower).")]
+        [SerializeField] private float bushSlowMultiplier = 0.5f;
+
+        private int overlappingBushesCount = 0;
+
         private Rigidbody2D rb;
         private CircleCollider2D col;
         private ParticleSystem footstepParticles;
@@ -122,7 +128,19 @@ namespace IsometricGame.Player
         public SpriteRenderer CharacterRenderer => characterRenderer;
         public float WalkEnergyDrainRate { get => walkEnergyDrainRate; set => walkEnergyDrainRate = value; }
         public float ExhaustedSpeedMultiplier { get => exhaustedSpeedMultiplier; set => exhaustedSpeedMultiplier = value; }
+        public float BushSlowMultiplier { get => bushSlowMultiplier; set => bushSlowMultiplier = value; }
+        public bool IsInBush => overlappingBushesCount > 0;
         public bool IsExhausted => IsometricGame.UI.EnergyBarUI.Instance != null && IsometricGame.UI.EnergyBarUI.Instance.CurrentEnergy <= 0.001f;
+
+        public void EnterBush()
+        {
+            overlappingBushesCount++;
+        }
+
+        public void ExitBush()
+        {
+            overlappingBushesCount = Mathf.Max(0, overlappingBushesCount - 1);
+        }
 
         public void SetInputEnabled(bool enabled)
         {
@@ -594,6 +612,10 @@ namespace IsometricGame.Player
             if (isExhausted)
             {
                 targetSpeed *= exhaustedSpeedMultiplier; // 50% slower walk
+            }
+            if (overlappingBushesCount > 0)
+            {
+                targetSpeed *= bushSlowMultiplier; // 50% slower when walking/running through bushes
             }
 
             Vector2 targetVelocity = moveDir * targetSpeed;

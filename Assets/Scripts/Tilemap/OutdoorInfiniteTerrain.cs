@@ -38,9 +38,9 @@ namespace IsometricGame.Tilemap
         [Tooltip("Bush walk-through trigger radius for opacity fading.")]
         [SerializeField] private float bushTriggerRadius = 0.32f;
         [SerializeField] private Vector2 bushTriggerOffset = new Vector2(0f, 0.12f);
-        [Tooltip("Opacity when player walks through (0.75 = 25% reduction).")]
+        [Tooltip("Opacity when player walks through (1.0 = no opacity reduction).")]
         [Range(0f, 1f)]
-        [SerializeField] private float bushWalkThroughOpacity = 0.75f;
+        [SerializeField] private float bushWalkThroughOpacity = 1.0f;
 
         [Header("Procedural Pine Trees (Groves & Bunches)")]
         [Tooltip("Scale of Perlin noise for tree groves (smaller = broader bunches).")]
@@ -84,6 +84,26 @@ namespace IsometricGame.Tilemap
         [SerializeField] private float tinyFoliage3SpawnRate = 0.01f;
         [SerializeField] private int tinyFoliageSeed = 5555;
 
+        [Header("Procedural Stone Quad Plates Path (Batches of Max 3)")]
+        [Tooltip("Scale of regional Perlin noise controlling where stone path batches appear.")]
+        [SerializeField] private float stonePathNoiseScale = 0.08f;
+        [Tooltip("Noise threshold above which a region can spawn stone path batches.")]
+        [SerializeField] private float stonePathClusterThreshold = 0.58f;
+        [Tooltip("Seed for stone path noise and batch placement.")]
+        [SerializeField] private int stonePathSeed = 8888;
+        [Tooltip("Grid spacing (cell size) between possible batch seed locations.")]
+        [SerializeField] private int stonePathCellSize = 6;
+
+        [Header("Procedural Small Rocks Overlay (1, 2, or All 3 Rocks)")]
+        [Tooltip("Scale of Perlin noise for small rock patches.")]
+        [SerializeField] private float smallRocksNoiseScale = 0.16f;
+        [Tooltip("Threshold above which a small rock patch forms.")]
+        [SerializeField] private float smallRocksClusterThreshold = 0.66f;
+        [Tooltip("Spawn probability within rock cluster patches (~0.25 yields ~2.0% spawn rate).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float smallRocksSpawnProbability = 0.25f;
+        [SerializeField] private int smallRocksSeed = 4444;
+
         [Header("Sprites")]
         public Sprite grassSprite;
         public Sprite longGrassSprite;
@@ -91,6 +111,14 @@ namespace IsometricGame.Tilemap
         public Sprite tinyFoliage1Sprite;
         public Sprite tinyFoliage2Sprite;
         public Sprite tinyFoliage3Sprite;
+        public Sprite stonePathSprite;
+        public Sprite smallRock1Sprite;
+        public Sprite smallRock2Sprite;
+        public Sprite smallRock3Sprite;
+        public Sprite smallRocks12Sprite;
+        public Sprite smallRocks13Sprite;
+        public Sprite smallRocks23Sprite;
+        public Sprite smallRocksClusterSprite;
         public Sprite bushSprite;
         public Sprite pineTreeSprite;
         public Sprite doorSprite;
@@ -121,6 +149,14 @@ namespace IsometricGame.Tilemap
         public float TinyFoliage2SpawnRate { get => tinyFoliage2SpawnRate; set => tinyFoliage2SpawnRate = value; }
         public float TinyFoliage3SpawnRate { get => tinyFoliage3SpawnRate; set => tinyFoliage3SpawnRate = value; }
         public int TinyFoliageSeed { get => tinyFoliageSeed; set => tinyFoliageSeed = value; }
+        public float StonePathNoiseScale { get => stonePathNoiseScale; set => stonePathNoiseScale = value; }
+        public float StonePathClusterThreshold { get => stonePathClusterThreshold; set => stonePathClusterThreshold = value; }
+        public int StonePathSeed { get => stonePathSeed; set => stonePathSeed = value; }
+        public int StonePathCellSize { get => stonePathCellSize; set => stonePathCellSize = value; }
+        public float SmallRocksNoiseScale { get => smallRocksNoiseScale; set => smallRocksNoiseScale = value; }
+        public float SmallRocksClusterThreshold { get => smallRocksClusterThreshold; set => smallRocksClusterThreshold = value; }
+        public float SmallRocksSpawnProbability { get => smallRocksSpawnProbability; set => smallRocksSpawnProbability = value; }
+        public int SmallRocksSeed { get => smallRocksSeed; set => smallRocksSeed = value; }
         public float DoorClearRadius { get => doorClearRadius; set => doorClearRadius = value; }
 
         private void Awake()
@@ -186,6 +222,38 @@ namespace IsometricGame.Tilemap
             if (tinyFoliage3Sprite == null)
             {
                 tinyFoliage3Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 3.png");
+            }
+            if (stonePathSprite == null)
+            {
+                stonePathSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/stone quad plates path.png");
+            }
+            if (smallRock1Sprite == null)
+            {
+                smallRock1Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rock 1.png");
+            }
+            if (smallRock2Sprite == null)
+            {
+                smallRock2Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rock 2.png");
+            }
+            if (smallRock3Sprite == null)
+            {
+                smallRock3Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rock 3.png");
+            }
+            if (smallRocks12Sprite == null)
+            {
+                smallRocks12Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks 1 and 2.png");
+            }
+            if (smallRocks13Sprite == null)
+            {
+                smallRocks13Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks 1 and 3.png");
+            }
+            if (smallRocks23Sprite == null)
+            {
+                smallRocks23Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks 2 and 3.png");
+            }
+            if (smallRocksClusterSprite == null)
+            {
+                smallRocksClusterSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks overlay (3) use each individually and together.png");
             }
             if (bushSprite == null)
             {
@@ -335,24 +403,40 @@ namespace IsometricGame.Tilemap
                     SpawnGrassTile(chunkObj.transform, x, y);
 
                     float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
+                    bool isStonePath = false;
+
                     if (distToDoor > doorClearRadius)
                     {
-                        // 2. Procedural Grass Overlays: Rare Long Grass (~0.9%) or Natural Short Grass (~3.2%)
-                        if (ShouldSpawnLongGrass(x, y))
+                        // 2. Procedural Stone Quad Plates Path (batches of max 3 tiles with noise)
+                        isStonePath = ShouldSpawnStonePath(x, y);
+                        if (isStonePath)
                         {
-                            SpawnLongGrassTile(chunkObj.transform, x, y);
+                            SpawnStonePathTile(chunkObj.transform, x, y);
                         }
-                        else if (ShouldSpawnShortGrass(x, y))
+                        else
                         {
-                            SpawnShortGrassTile(chunkObj.transform, x, y);
-                        }
+                            // 3. Procedural Small Rocks Overlay (1, 2, or all 3 rocks)
+                            if (ShouldSpawnSmallRocks(x, y))
+                            {
+                                SpawnSmallRocksTile(chunkObj.transform, x, y);
+                            }
+                            // 4. Procedural Grass Overlays: Rare Long Grass (~0.9%) or Natural Short Grass (~3.2%)
+                            else if (ShouldSpawnLongGrass(x, y))
+                            {
+                                SpawnLongGrassTile(chunkObj.transform, x, y);
+                            }
+                            else if (ShouldSpawnShortGrass(x, y))
+                            {
+                                SpawnShortGrassTile(chunkObj.transform, x, y);
+                            }
 
-                        // 3. Procedural Tiny Grass Foliage (1% spawn chance on each of 3 variants)
-                        SpawnTinyFoliageIfRolled(chunkObj.transform, x, y);
+                            // 5. Procedural Tiny Grass Foliage (1% spawn chance on each of 3 variants)
+                            SpawnTinyFoliageIfRolled(chunkObj.transform, x, y);
+                        }
                     }
 
-                    // 4. Procedural Vegetation (Pine Trees & Bushes)
-                    if (distToDoor > doorClearRadius)
+                    // 6. Procedural Vegetation (Pine Trees & Bushes) - kept clear from stone paths
+                    if (distToDoor > doorClearRadius && !isStonePath)
                     {
                         // A. Procedural Pine Trees in organic bunches/groves
                         float tnx = (x + treeSeed * 73f) * treeNoiseScale;
@@ -534,6 +618,140 @@ namespace IsometricGame.Tilemap
             // 50% random horizontal flip for natural organic variation
             sr.flipX = DeterministicRoll(gridX, gridY, tinyFoliageSeed + variant * 77) < 0.5f;
             // Sitting at layerOffset = -8000 + 2 places tiny foliage directly on top of base grass and tile overlays
+            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 2;
+        }
+
+        public bool ShouldSpawnStonePath(int x, int y)
+        {
+            if (stonePathSprite == null) return false;
+
+            float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
+            if (distToDoor <= doorClearRadius) return false;
+
+            int cx = Mathf.FloorToInt((float)x / stonePathCellSize);
+            int cy = Mathf.FloorToInt((float)y / stonePathCellSize);
+
+            // Regional noise check: does this region have stone path stepping stones?
+            float rnx = (cx * stonePathCellSize + stonePathSeed * 61f) * stonePathNoiseScale;
+            float rny = (cy * stonePathCellSize + stonePathSeed * 61f) * stonePathNoiseScale;
+            float noise = Mathf.PerlinNoise(rnx, rny);
+            if (noise <= stonePathClusterThreshold) return false;
+
+            int h = HashCell(cx, cy, stonePathSeed);
+            int batchSize = (h % 3) + 1; // Strictly 1, 2, or 3 in a batch
+            int dir = (h >> 3) % 4;
+
+            int dx = 0, dy = 0;
+            switch (dir)
+            {
+                case 0: dx = 1; dy = 0; break;
+                case 1: dx = 0; dy = 1; break;
+                case 2: dx = 1; dy = 1; break;
+                default: dx = 1; dy = -1; break;
+            }
+
+            int margin = stonePathCellSize - 4;
+            if (margin < 1) margin = 1;
+
+            int ax = cx * stonePathCellSize + 1 + ((h >> 6) % margin);
+            int ay = cy * stonePathCellSize + (dy == -1 ? 3 : 1) + ((h >> 9) % margin);
+
+            if (x == ax && y == ay) return true;
+            if (batchSize >= 2 && x == ax + dx && y == ay + dy) return true;
+            if (batchSize == 3 && x == ax + 2 * dx && y == ay + 2 * dy) return true;
+
+            return false;
+        }
+
+        private int HashCell(int cx, int cy, int seed)
+        {
+            unchecked
+            {
+                int h = seed;
+                h = (h * 31 + cx) & 0x7FFFFFFF;
+                h = (h * 31 + cy) & 0x7FFFFFFF;
+                h = ((h ^ (h >> 16)) * 0x45d9f3b) & 0x7FFFFFFF;
+                h = ((h ^ (h >> 16)) * 0x45d9f3b) & 0x7FFFFFFF;
+                h = (h ^ (h >> 16)) & 0x7FFFFFFF;
+                return h;
+            }
+        }
+
+        private void SpawnStonePathTile(Transform parent, int gridX, int gridY)
+        {
+            if (stonePathSprite == null) return;
+
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            GameObject tileObj = new GameObject($"StonePath_{gridX}_{gridY}");
+            tileObj.transform.SetParent(parent, false);
+            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+
+            SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
+            sr.sprite = stonePathSprite;
+            // 50% random horizontal flip for natural variety
+            sr.flipX = DeterministicRoll(gridX, gridY, stonePathSeed + 111) < 0.5f;
+            // Sitting at layerOffset = -8000 + 1 renders directly on top of base grass (-8000)
+            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 1;
+        }
+
+        public bool ShouldSpawnSmallRocks(int x, int y)
+        {
+            if (smallRocksClusterSprite == null && smallRock1Sprite == null) return false;
+
+            float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
+            if (distToDoor <= doorClearRadius) return false;
+
+            float cnx = (x + smallRocksSeed * 53f) * smallRocksNoiseScale;
+            float cny = (y + smallRocksSeed * 53f) * smallRocksNoiseScale;
+            float clusterNoise = Mathf.PerlinNoise(cnx, cny);
+
+            if (clusterNoise <= smallRocksClusterThreshold) return false;
+
+            float roll = DeterministicRoll(x, y, smallRocksSeed);
+            return roll < smallRocksSpawnProbability;
+        }
+
+        private void SpawnSmallRocksTile(Transform parent, int gridX, int gridY)
+        {
+            float roll = DeterministicRoll(gridX, gridY, smallRocksSeed + 333);
+            Sprite chosenSprite = null;
+            string label = "Rocks";
+
+            if (roll < 0.45f)
+            {
+                // 1 Rock (pick among Rock 1, Rock 2, Rock 3)
+                int subRoll = (int)(DeterministicRoll(gridX, gridY, smallRocksSeed + 444) * 3f);
+                if (subRoll == 0) { chosenSprite = smallRock1Sprite ?? smallRocksClusterSprite; label = "Rock1"; }
+                else if (subRoll == 1) { chosenSprite = smallRock2Sprite ?? smallRocksClusterSprite; label = "Rock2"; }
+                else { chosenSprite = smallRock3Sprite ?? smallRocksClusterSprite; label = "Rock3"; }
+            }
+            else if (roll < 0.80f)
+            {
+                // 2 Rocks (pick among 1&2, 1&3, 2&3)
+                int subRoll = (int)(DeterministicRoll(gridX, gridY, smallRocksSeed + 555) * 3f);
+                if (subRoll == 0) { chosenSprite = smallRocks12Sprite ?? smallRocksClusterSprite; label = "Rocks12"; }
+                else if (subRoll == 1) { chosenSprite = smallRocks13Sprite ?? smallRocksClusterSprite; label = "Rocks13"; }
+                else { chosenSprite = smallRocks23Sprite ?? smallRocksClusterSprite; label = "Rocks23"; }
+            }
+            else
+            {
+                // All 3 Rocks together
+                chosenSprite = smallRocksClusterSprite ?? smallRock1Sprite;
+                label = "RocksCluster";
+            }
+
+            if (chosenSprite == null) return;
+
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            GameObject tileObj = new GameObject($"Small{label}_{gridX}_{gridY}");
+            tileObj.transform.SetParent(parent, false);
+            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+
+            SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
+            sr.sprite = chosenSprite;
+            // 50% random horizontal flip for natural organic variation
+            sr.flipX = DeterministicRoll(gridX, gridY, smallRocksSeed + 777) < 0.5f;
+            // Sitting at layerOffset = -8000 + 2 renders above base grass and overlays
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000) + 2;
         }
 

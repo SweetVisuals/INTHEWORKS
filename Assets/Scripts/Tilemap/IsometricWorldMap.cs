@@ -95,6 +95,14 @@ namespace IsometricGame.Tilemap
         public Sprite customTinyFoliage1Sprite;
         public Sprite customTinyFoliage2Sprite;
         public Sprite customTinyFoliage3Sprite;
+        public Sprite customStonePathSprite;
+        public Sprite customSmallRock1Sprite;
+        public Sprite customSmallRock2Sprite;
+        public Sprite customSmallRock3Sprite;
+        public Sprite customSmallRocks12Sprite;
+        public Sprite customSmallRocks13Sprite;
+        public Sprite customSmallRocks23Sprite;
+        public Sprite customSmallRocksClusterSprite;
         public Sprite customBushSprite;
         public Sprite customPineTreeSprite;
 
@@ -555,6 +563,38 @@ namespace IsometricGame.Tilemap
             if (customTinyFoliage3Sprite == null)
             {
                 customTinyFoliage3Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/tiny grass foliage 3.png");
+            }
+            if (customStonePathSprite == null)
+            {
+                customStonePathSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/stone quad plates path.png");
+            }
+            if (customSmallRock1Sprite == null)
+            {
+                customSmallRock1Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rock 1.png");
+            }
+            if (customSmallRock2Sprite == null)
+            {
+                customSmallRock2Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rock 2.png");
+            }
+            if (customSmallRock3Sprite == null)
+            {
+                customSmallRock3Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rock 3.png");
+            }
+            if (customSmallRocks12Sprite == null)
+            {
+                customSmallRocks12Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks 1 and 2.png");
+            }
+            if (customSmallRocks13Sprite == null)
+            {
+                customSmallRocks13Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks 1 and 3.png");
+            }
+            if (customSmallRocks23Sprite == null)
+            {
+                customSmallRocks23Sprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks 2 and 3.png");
+            }
+            if (customSmallRocksClusterSprite == null)
+            {
+                customSmallRocksClusterSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/small rocks overlay (3) use each individually and together.png");
             }
             if (customBushSprite == null)
             {
