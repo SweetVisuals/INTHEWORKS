@@ -47,7 +47,7 @@ namespace IsometricGame.Environment
         [Header("Floating Computer Electricity Sparks & Particles")]
         [SerializeField] private bool enableParticles = true;
         [SerializeField] private Color particleColor = new Color(0.40f, 0.95f, 1.0f, 0.95f);
-        [SerializeField] private float particleRate = 8.0f;
+        [SerializeField] private float particleRate = 2.5f;
         [SerializeField] private Vector2 particleEmitterOffset = new Vector2(0.38f, 1.15f);
 
         [Header("Hover Outline & Interaction")]
@@ -244,6 +244,8 @@ namespace IsometricGame.Environment
                 return;
             }
 
+            if (particleRate > 4.0f) particleRate = 2.5f;
+
             Transform pTrans = transform.Find("Computer_Floating_Particles");
             if (pTrans != null)
             {
@@ -261,20 +263,20 @@ namespace IsometricGame.Environment
             var main = floatingParticles.main;
             main.loop = true;
             main.playOnAwake = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(1.5f, 2.8f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.12f, 0.32f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.10f, 0.22f);
-            main.startColor = particleColor;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.40f, 0.85f); // Quick, lively pixel twinkle
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.06f);     // Subtle micro-drift, NOT a rising chimney plume
+            main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.060f);   // 1-2 pixels in 32 PPU world
+            main.startColor = Color.white;
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
-            main.maxParticles = 36;
+            main.maxParticles = 8;
 
             var emission = floatingParticles.emission;
             emission.rateOverTime = particleRate;
 
             var shape = floatingParticles.shape;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(0.35f, 0.22f, 0.05f);
-            shape.rotation = new Vector3(-90f, 0f, 0f); // Emit upward in 2D (+Y)
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 0.16f; // Clustered right around the monitor screen
+            shape.rotation = Vector3.zero;
 
             var vel = floatingParticles.velocityOverLifetime;
             vel.enabled = false;
@@ -284,16 +286,16 @@ namespace IsometricGame.Environment
             Gradient grad = new Gradient();
             grad.SetKeys(
                 new GradientColorKey[] {
-                    new GradientColorKey(new Color(1.0f, 1.0f, 1.0f), 0.0f),
-                    new GradientColorKey(new Color(0.40f, 0.95f, 1.0f), 0.35f),
-                    new GradientColorKey(new Color(0.15f, 0.65f, 1.0f), 0.85f),
-                    new GradientColorKey(new Color(0.10f, 0.40f, 0.90f), 1.0f)
+                    new GradientColorKey(new Color(1.0f, 1.0f, 1.0f), 0.0f),       // Core white spark
+                    new GradientColorKey(new Color(0.40f, 0.95f, 1.0f), 0.30f),     // Vibrant electric cyan
+                    new GradientColorKey(new Color(0.20f, 0.70f, 1.0f), 0.70f),     // Digital aqua
+                    new GradientColorKey(new Color(0.10f, 0.40f, 0.90f), 1.0f)      // Fade out
                 },
                 new GradientAlphaKey[] {
                     new GradientAlphaKey(0.0f, 0.0f),
-                    new GradientAlphaKey(1.0f, 0.15f),
-                    new GradientAlphaKey(0.85f, 0.75f),
-                    new GradientAlphaKey(0.0f, 1.0f)
+                    new GradientAlphaKey(1.0f, 0.15f), // Quick pop in
+                    new GradientAlphaKey(0.9f, 0.75f), // Crisp sustain (no puffing)
+                    new GradientAlphaKey(0.0f, 1.0f)  // Sharp fade out
                 }
             );
             col.color = grad;
@@ -301,9 +303,9 @@ namespace IsometricGame.Environment
             var sizeOverLifetime = floatingParticles.sizeOverLifetime;
             sizeOverLifetime.enabled = true;
             AnimationCurve sizeCurve = new AnimationCurve();
-            sizeCurve.AddKey(0.0f, 0.4f);
+            sizeCurve.AddKey(0.0f, 0.7f);
             sizeCurve.AddKey(0.2f, 1.0f);
-            sizeCurve.AddKey(0.7f, 0.85f);
+            sizeCurve.AddKey(0.75f, 1.0f); // Steady size (does NOT expand into a cloud)
             sizeCurve.AddKey(1.0f, 0.0f);
             sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1.0f, sizeCurve);
 
@@ -324,23 +326,31 @@ namespace IsometricGame.Environment
 
         private static Texture2D GetParticleTexture()
         {
-            if (cachedParticleSprite != null) return cachedParticleSprite.texture;
+            if (cachedParticleSprite != null && cachedParticleSprite.texture != null) return cachedParticleSprite.texture;
 
-            Texture2D tex = new Texture2D(8, 8, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Bilinear;
+            int size = 4;
+            Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
             tex.wrapMode = TextureWrapMode.Clamp;
-            Vector2 center = new Vector2(3.5f, 3.5f);
-            for (int y = 0; y < 8; y++)
+
+            float[,] pattern = new float[4, 4]
             {
-                for (int x = 0; x < 8; x++)
+                { 0.0f,  0.75f, 0.75f, 0.0f },
+                { 0.75f, 1.0f,  1.0f,  0.75f },
+                { 0.75f, 1.0f,  1.0f,  0.75f },
+                { 0.0f,  0.75f, 0.75f, 0.0f }
+            };
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
                 {
-                    float dist = Vector2.Distance(new Vector2(x, y), center) / 3.5f;
-                    float alpha = Mathf.Clamp01(1f - dist * dist);
-                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                    float a = pattern[y, x];
+                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
                 }
             }
             tex.Apply();
-            cachedParticleSprite = Sprite.Create(tex, new Rect(0, 0, 8, 8), new Vector2(0.5f, 0.5f), 32f);
+            cachedParticleSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 32f);
             return tex;
         }
 
