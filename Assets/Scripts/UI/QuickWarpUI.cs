@@ -237,7 +237,7 @@ namespace IsometricGame.UI
                 return false;
             }
 
-            if (SleepTransitionUI.Instance != null && SleepTransitionUI.Instance.IsTransitioning)
+            if (SleepTransitionUI.Instance != null && (SleepTransitionUI.Instance.IsSleeping || SleepTransitionUI.Instance.IsTransitioning))
             {
                 return false;
             }

@@ -57,6 +57,7 @@ namespace IsometricGame.UI
         private bool isSleeping = false;
 
         public bool IsSleeping => isSleeping;
+        public bool IsTransitioning => isSleeping;
 
         private void Awake()
         {

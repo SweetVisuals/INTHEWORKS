@@ -153,6 +153,8 @@ namespace IsometricGame.UI
             }
 
             CustomGameCursor.EnsureCursorActive();
+            IsometricGame.Tilemap.QuarterBlockManager.EnsureManagerActive();
+            IsometricGame.Environment.BlockHoverHighlightSystem.EnsureSystemActive();
         }
 
         public static Canvas EnsureCanvasAndEventSystem()
