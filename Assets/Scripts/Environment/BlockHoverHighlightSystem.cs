@@ -421,7 +421,8 @@ namespace IsometricGame.Environment
             int groundElevation = isTileBroken ? -1 : 0;
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, groundElevation);
             float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0.09375f;
-            int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, groundElevation, -8000 + 50);
+            int baseTileOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, groundElevation, -8000);
+            int baseQuadOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, groundElevation, -8000 + 4);
 
             // 3. Highlight Mode Execution:
             if (hoveringPlacedQuad && hoverMode != HoverHighlightMode.NormalOnly)
@@ -435,7 +436,8 @@ namespace IsometricGame.Environment
                 {
                     quarterOutlineObj.SetActive(true);
                     Vector2 quadPos = QuarterBlockManager.Instance.GetQuarterBlockWorldPosition(hoveredGridPos, hoveredQuadrant, hoveredQuadElevation);
-                    quarterOutlineObj.transform.position = new Vector3(quadPos.x, quadPos.y, 0f);
+                    float quadZ = QuarterBlockManager.CalculateIsometricZ(hoveredGridPos.x, hoveredGridPos.y, hoveredQuadElevation, hoveredQuadrant);
+                    quarterOutlineObj.transform.position = new Vector3(quadPos.x, quadPos.y, quadZ - 0.0001f);
                     quarterOutlineObj.transform.localScale = Vector3.one;
 
                     if (quarterRenderer != null)
@@ -443,7 +445,7 @@ namespace IsometricGame.Environment
                         quarterRenderer.sprite = quarterBlockOutlineSprite;
                         quarterRenderer.color = renderColor;
                         int stackOrder = hoveredQuadElevation * 10;
-                        quarterRenderer.sortingOrder = baseSortingOrder + stackOrder + QuarterBlockManager.GetQuadrantSortingOffset(hoveredQuadrant) + 4;
+                        quarterRenderer.sortingOrder = baseQuadOrder + stackOrder + QuarterBlockManager.GetQuadrantSortingOffset(hoveredQuadrant) + 1;
                     }
                 }
             }
@@ -459,7 +461,8 @@ namespace IsometricGame.Environment
                     quadHighlightObj.SetActive(true);
                     Vector2 center = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, groundElevation);
                     float elevY = hoveredElevation * (QuarterBlockManager.Instance != null ? QuarterBlockManager.Instance.QuarterBlockStackStepHeight : 0.25f);
-                    quadHighlightObj.transform.position = new Vector3(center.x, center.y + elevY, 0f);
+                    float quadZ = QuarterBlockManager.CalculateIsometricZ(hoveredGridPos.x, hoveredGridPos.y, hoveredElevation, hoveredQuadrant);
+                    quadHighlightObj.transform.position = new Vector3(center.x, center.y + elevY, quadZ - 0.0001f);
                     quadHighlightObj.transform.localScale = new Vector3(pulseScale, pulseScale, 1f);
 
                     if (quadHighlightRenderer != null)
@@ -467,7 +470,7 @@ namespace IsometricGame.Environment
                         quadHighlightRenderer.sprite = GetQuadHighlightSprite(hoveredQuadrant);
                         quadHighlightRenderer.color = renderColor;
                         int stackOrder = hoveredElevation * 10;
-                        quadHighlightRenderer.sortingOrder = baseSortingOrder + stackOrder + QuarterBlockManager.GetQuadrantSortingOffset(hoveredQuadrant) + 15;
+                        quadHighlightRenderer.sortingOrder = baseQuadOrder + stackOrder + QuarterBlockManager.GetQuadrantSortingOffset(hoveredQuadrant) + 1;
                     }
                 }
             }
@@ -481,12 +484,13 @@ namespace IsometricGame.Environment
                 if (normalOutlineObj != null)
                 {
                     normalOutlineObj.SetActive(true);
-                    normalOutlineObj.transform.position = new Vector3(tileVisualCenter.x, tileVisualCenter.y, 0f);
+                    float tileZ = (hoveredGridPos.x + hoveredGridPos.y) * 0.01f - 0.0001f;
+                    normalOutlineObj.transform.position = new Vector3(tileVisualCenter.x, tileVisualCenter.y, tileZ);
                     normalOutlineObj.transform.localScale = Vector3.one;
                     if (normalRenderer != null)
                     {
                         normalRenderer.color = renderColor;
-                        normalRenderer.sortingOrder = baseSortingOrder;
+                        normalRenderer.sortingOrder = baseTileOrder + 2;
                     }
                 }
             }
@@ -638,20 +642,22 @@ namespace IsometricGame.Environment
                 quadWhiteFlashRenderer.sprite = targetSprite;
                 quadWhiteFlashRenderer.color = new Color(1f, 1f, 1f, 0.95f);
                 int baseOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, 0, -8000 + 4);
-                quadWhiteFlashRenderer.sortingOrder = baseOrder + (elevation * 10) + QuarterBlockManager.GetQuadrantSortingOffset(quadrant) + 8;
-                quadWhiteFlashObj.transform.position = new Vector3(quadPos.x, quadPos.y, 0f);
+                quadWhiteFlashRenderer.sortingOrder = baseOrder + (elevation * 10) + QuarterBlockManager.GetQuadrantSortingOffset(quadrant) + 1;
+                float flashZ = QuarterBlockManager.CalculateIsometricZ(hoveredGridPos.x, hoveredGridPos.y, elevation, quadrant) - 0.0002f;
+                quadWhiteFlashObj.transform.position = new Vector3(quadPos.x, quadPos.y, flashZ);
                 quadWhiteFlashObj.SetActive(true);
             }
 
             float elapsed = 0f;
             float duration = 0.10f;
+            float flashZCoord = QuarterBlockManager.CalculateIsometricZ(hoveredGridPos.x, hoveredGridPos.y, elevation, quadrant) - 0.0002f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float shakeX = Mathf.Sin(elapsed * 75f) * 0.02f * (1f - elapsed / duration);
                 if (quadWhiteFlashObj != null)
                 {
-                    quadWhiteFlashObj.transform.position = new Vector3(quadPos.x + shakeX, quadPos.y, 0f);
+                    quadWhiteFlashObj.transform.position = new Vector3(quadPos.x + shakeX, quadPos.y, flashZCoord);
                 }
                 yield return null;
             }

@@ -567,9 +567,10 @@ namespace IsometricGame.Tilemap
             if (grassSprite == null) return;
 
             Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            float tileZ = (gridX + gridY) * 0.01f;
             GameObject tileObj = new GameObject($"Grass_{gridX}_{gridY}");
             tileObj.transform.SetParent(parent, false);
-            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, tileZ);
 
             SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
             sr.sprite = grassSprite;
@@ -583,10 +584,11 @@ namespace IsometricGame.Tilemap
 
             Vector2 baseWorld = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
             Vector2 worldPos = baseWorld + new Vector2(0f, layer * subterraneanStepHeight);
+            float tileZ = (gridX + gridY) * 0.01f + 0.005f;
             string tileName = layer == -1 ? $"Stone_{gridX}_{gridY}" : $"Stone_{gridX}_{gridY}_L{layer}";
             GameObject tileObj = new GameObject(tileName);
             tileObj.transform.SetParent(parent, false);
-            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, tileZ);
 
             SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
             sr.sprite = stoneBlockSprite;

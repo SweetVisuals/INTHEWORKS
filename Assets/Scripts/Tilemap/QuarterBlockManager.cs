@@ -299,6 +299,15 @@ namespace IsometricGame.Tilemap
         }
 
         /// <summary>
+        /// Calculates Z depth coordinate so that objects further south (smaller gridX+gridY),
+        /// higher in elevation, and further south in quadrant are physically closer to the camera in Z.
+        /// </summary>
+        public static float CalculateIsometricZ(int gridX, int gridY, int elevation = 0, BlockQuadrant quadrant = BlockQuadrant.North)
+        {
+            return (gridX + gridY) * 0.01f - (elevation * 0.002f) - (GetQuadrantSortingOffset(quadrant) * 0.0005f);
+        }
+
+        /// <summary>
         /// Returns the visual diamond center in world coordinates for a tile at gridPos.
         /// (In this project, 32x32 elevated half-tile grass blocks have their top visual diamond centered 2px / +0.0625 units above base pivot).
         /// </summary>
@@ -413,7 +422,8 @@ namespace IsometricGame.Tilemap
                 obj.transform.SetParent(transform, false);
 
                 Vector2 quadPos = GetQuarterBlockWorldPosition(gridPos, quadrant, elevation);
-                obj.transform.position = new Vector3(quadPos.x, quadPos.y, 0f);
+                float quadZ = CalculateIsometricZ(gridPos.x, gridPos.y, elevation, quadrant);
+                obj.transform.position = new Vector3(quadPos.x, quadPos.y, quadZ);
 
                 SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
                 sr.sprite = targetSprite;
