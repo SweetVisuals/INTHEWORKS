@@ -849,6 +849,9 @@ namespace IsometricGame.Tilemap
             CircleCollider2D col = treeObj.AddComponent<CircleCollider2D>();
             col.radius = treeColliderRadius;
             col.offset = treeColliderOffset;
+
+            var harvestable = treeObj.AddComponent<IsometricGame.Environment.HarvestableTree>();
+            harvestable.gridPos = new Vector2Int(gridX, gridY);
         }
 
         public void EnsureDoorObject()

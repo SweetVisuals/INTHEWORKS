@@ -19,15 +19,19 @@ namespace IsometricGame.Tilemap
     {
         None = 0,
         Grass = 1,
-        Dirt = 2
+        Dirt = 2,
+        Log = 3
     }
 
     /// <summary>
-    /// Manages sub-tile quarter blocks. Exactly 4 quarter blocks fit pixel-perfect inside 1 standard isometric tile:
-    /// - North:  dx =   0px (+0.000 units), dy = +4px (+0.125 units)
-    /// - South:  dx =   0px (+0.000 units), dy = -4px (-0.125 units)
-    /// - East:   dx =  +8px (+0.250 units), dy =  0px (+0.000 units)
-    /// - West:   dx =  -8px (-0.250 units), dy =  0px (+0.000 units)
+    /// Manages sub-tile quarter blocks and vertical stacking/building up:
+    /// - Exactly 4 quarter blocks fit pixel-perfect inside 1 standard isometric tile:
+    ///   - North: dx =   0px (+0.000 units), dy = +4px (+0.125 units)
+    ///   - South: dx =   0px (+0.000 units), dy = -4px (-0.125 units)
+    ///   - East:  dx =  +8px (+0.250 units), dy =  0px (+0.000 units)
+    ///   - West:  dx =  -8px (-0.250 units), dy =  0px (+0.000 units)
+    /// - Supports vertical stacking / building up along each quadrant (step height = 5px / 0.15625 units).
+    /// - Manages Grass, Dirt, and Log quad blocks with inventory sync.
     /// </summary>
     [ExecuteAlways]
     public class QuarterBlockManager : MonoBehaviour
@@ -37,35 +41,74 @@ namespace IsometricGame.Tilemap
         [Header("Quarter Block Sprites")]
         [SerializeField] private Sprite quarterGrassSprite;
         [SerializeField] private Sprite quarterDirtSprite;
+        [SerializeField] private Sprite quarterLogSprite;
 
-        [Header("Settings")]
+        [Header("Stacking / Building Up")]
+        [Tooltip("Vertical world step height for stacking quarter blocks on top of each other (5px = 0.15625f at 32 PPU)")]
+        [SerializeField] private float quarterBlockStackStepHeight = 0.15625f;
+        [SerializeField] private int maxStackHeight = 16;
         [SerializeField] private bool enableSortingDepth = true;
 
-        // Tile -> 4 Quadrant types [North, South, East, West]
-        private readonly Dictionary<Vector2Int, QuarterBlockType[]> tileQuarterBlocks = new Dictionary<Vector2Int, QuarterBlockType[]>();
-        // Tile -> 4 Quadrant GameObjects
-        private readonly Dictionary<Vector2Int, GameObject[]> tileQuarterObjects = new Dictionary<Vector2Int, GameObject[]>();
+        // Tile -> 4 Quadrants -> Stack of types (North, South, East, West)
+        private readonly Dictionary<Vector2Int, List<QuarterBlockType>[]> tileQuarterStacks = new Dictionary<Vector2Int, List<QuarterBlockType>[]>();
+        // Tile -> 4 Quadrants -> Stack of GameObjects
+        private readonly Dictionary<Vector2Int, List<GameObject>[]> tileQuarterObjectStacks = new Dictionary<Vector2Int, List<GameObject>[]>();
 
         [Header("Inventory")]
-        [SerializeField] private int quarterGrassInventory = 0;
-        [SerializeField] private int quarterDirtInventory = 0;
+        [SerializeField] private int quarterGrassInventory = 4;
+        [SerializeField] private int quarterDirtInventory = 4;
+        [SerializeField] private int quarterLogInventory = 0;
 
         public int QuarterGrassInventory => quarterGrassInventory;
         public int QuarterDirtInventory => quarterDirtInventory;
+        public int QuarterLogInventory => quarterLogInventory;
 
         public Sprite QuarterGrassSprite => quarterGrassSprite;
         public Sprite QuarterDirtSprite => quarterDirtSprite;
+        public Sprite QuarterLogSprite => quarterLogSprite;
+        public float QuarterBlockStackStepHeight => quarterBlockStackStepHeight;
+        public int MaxStackHeight => maxStackHeight;
+
+        /// <summary>
+        /// Returns true if the player currently has a quad block tile selected in the hotbar (Slot 0 for Grass, Slot 1 for Dirt, Slot 2 for Log)
+        /// and has at least 1 in inventory.
+        /// </summary>
+        public bool IsHoldingQuadBlock(out QuarterBlockType heldType)
+        {
+            heldType = QuarterBlockType.None;
+            if (IsometricGame.UI.HotbarUI.Instance == null) return false;
+
+            int slot = IsometricGame.UI.HotbarUI.Instance.SelectedSlotIndex;
+            if (slot == 0 && quarterGrassInventory > 0)
+            {
+                heldType = QuarterBlockType.Grass;
+                return true;
+            }
+            if (slot == 1 && quarterDirtInventory > 0)
+            {
+                heldType = QuarterBlockType.Dirt;
+                return true;
+            }
+            if (slot == 2 && quarterLogInventory > 0)
+            {
+                heldType = QuarterBlockType.Log;
+                return true;
+            }
+            return false;
+        }
 
         public void AddToInventory(QuarterBlockType type, int count = 1)
         {
             if (type == QuarterBlockType.Grass) quarterGrassInventory += count;
             else if (type == QuarterBlockType.Dirt) quarterDirtInventory += count;
+            else if (type == QuarterBlockType.Log) quarterLogInventory += count;
         }
 
         public bool HasInInventory(QuarterBlockType type, int count = 1)
         {
             if (type == QuarterBlockType.Grass) return quarterGrassInventory >= count;
             if (type == QuarterBlockType.Dirt) return quarterDirtInventory >= count;
+            if (type == QuarterBlockType.Log) return quarterLogInventory >= count;
             return false;
         }
 
@@ -81,13 +124,20 @@ namespace IsometricGame.Tilemap
                 quarterDirtInventory -= count;
                 return true;
             }
+            if (type == QuarterBlockType.Log && quarterLogInventory >= count)
+            {
+                quarterLogInventory -= count;
+                return true;
+            }
             return false;
         }
 
         public void SpawnDroppedQuarterBlocks(Vector2 tileOrigin, QuarterBlockType type, int count = 4)
         {
             EnsureSpritesLoaded();
-            Sprite sprite = (type == QuarterBlockType.Grass) ? quarterGrassSprite : quarterDirtSprite;
+            Sprite sprite = quarterGrassSprite;
+            if (type == QuarterBlockType.Dirt) sprite = quarterDirtSprite;
+            else if (type == QuarterBlockType.Log) sprite = quarterLogSprite;
 
             Vector2[] scatterOffsets = new Vector2[]
             {
@@ -153,7 +203,21 @@ namespace IsometricGame.Tilemap
             {
                 quarterDirtSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/quarter dirt block.png");
             }
+            if (quarterLogSprite == null)
+            {
+                quarterLogSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/quarter block log block.png");
+            }
 #endif
+            if (quarterGrassSprite == null || quarterDirtSprite == null || quarterLogSprite == null)
+            {
+                Sprite[] all = Resources.FindObjectsOfTypeAll<Sprite>();
+                foreach (var s in all)
+                {
+                    if (quarterGrassSprite == null && s.name.StartsWith("quarter grass block")) quarterGrassSprite = s;
+                    if (quarterDirtSprite == null && s.name.StartsWith("quarter dirt block")) quarterDirtSprite = s;
+                    if (quarterLogSprite == null && s.name.StartsWith("quarter block log block")) quarterLogSprite = s;
+                }
+            }
         }
 
         /// <summary>
@@ -223,123 +287,243 @@ namespace IsometricGame.Tilemap
             return BlockQuadrant.West;
         }
 
-        public QuarterBlockType GetQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant)
+        public int GetStackHeight(Vector2Int gridPos, BlockQuadrant quadrant)
         {
-            if (tileQuarterBlocks.TryGetValue(gridPos, out var quads))
+            if (tileQuarterStacks.TryGetValue(gridPos, out var stacks))
             {
                 int idx = (int)quadrant;
-                if (idx >= 0 && idx < quads.Length) return quads[idx];
+                if (idx >= 0 && idx < stacks.Length && stacks[idx] != null)
+                {
+                    return stacks[idx].Count;
+                }
+            }
+            return 0;
+        }
+
+        public QuarterBlockType GetTopQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant)
+        {
+            if (tileQuarterStacks.TryGetValue(gridPos, out var stacks))
+            {
+                int idx = (int)quadrant;
+                if (idx >= 0 && idx < stacks.Length && stacks[idx] != null && stacks[idx].Count > 0)
+                {
+                    return stacks[idx][stacks[idx].Count - 1];
+                }
             }
             return QuarterBlockType.None;
         }
 
+        public QuarterBlockType GetQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant)
+        {
+            return GetTopQuarterBlock(gridPos, quadrant);
+        }
+
         public bool HasAnyQuarterBlocks(Vector2Int gridPos)
         {
-            if (tileQuarterBlocks.TryGetValue(gridPos, out var quads))
+            if (tileQuarterStacks.TryGetValue(gridPos, out var stacks))
             {
-                for (int i = 0; i < quads.Length; i++)
+                for (int i = 0; i < stacks.Length; i++)
                 {
-                    if (quads[i] != QuarterBlockType.None) return true;
+                    if (stacks[i] != null && stacks[i].Count > 0) return true;
                 }
             }
             return false;
         }
 
-        public void SetQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant, QuarterBlockType type)
+        public bool PushQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant, QuarterBlockType type)
         {
+            if (type == QuarterBlockType.None) return false;
             EnsureSpritesLoaded();
 
-            if (!tileQuarterBlocks.TryGetValue(gridPos, out var quads))
+            if (!tileQuarterStacks.TryGetValue(gridPos, out var typeStacks))
             {
-                quads = new QuarterBlockType[4];
-                tileQuarterBlocks[gridPos] = quads;
+                typeStacks = new List<QuarterBlockType>[4];
+                for (int i = 0; i < 4; i++) typeStacks[i] = new List<QuarterBlockType>();
+                tileQuarterStacks[gridPos] = typeStacks;
+            }
+
+            if (!tileQuarterObjectStacks.TryGetValue(gridPos, out var objStacks))
+            {
+                objStacks = new List<GameObject>[4];
+                for (int i = 0; i < 4; i++) objStacks[i] = new List<GameObject>();
+                tileQuarterObjectStacks[gridPos] = objStacks;
             }
 
             int idx = (int)quadrant;
-            quads[idx] = type;
+            if (typeStacks[idx].Count >= maxStackHeight) return false;
 
-            UpdateQuadrantVisual(gridPos, quadrant, type);
+            int elevation = typeStacks[idx].Count;
+            typeStacks[idx].Add(type);
+
+            Sprite targetSprite = quarterGrassSprite;
+            if (type == QuarterBlockType.Dirt) targetSprite = quarterDirtSprite;
+            else if (type == QuarterBlockType.Log) targetSprite = quarterLogSprite;
+
+            if (targetSprite != null)
+            {
+                GameObject obj = new GameObject($"QuarterBlock_{gridPos.x}_{gridPos.y}_{quadrant}_L{elevation}");
+                obj.transform.SetParent(transform, false);
+
+                Vector2 center = GetTileVisualCenter(gridPos, 0);
+                Vector2 quadPos = center + GetQuadrantOffset(quadrant) + new Vector2(0f, elevation * quarterBlockStackStepHeight);
+                obj.transform.position = new Vector3(quadPos.x, quadPos.y, 0f);
+
+                SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
+                sr.sprite = targetSprite;
+
+                int baseOrder = IsometricCoordinates.CalculateSortingOrder(gridPos.x, gridPos.y, 0, -8000 + 4);
+                int stackSort = elevation * 10;
+                sr.sortingOrder = enableSortingDepth ? (baseOrder + stackSort + GetQuadrantSortingOffset(quadrant)) : baseOrder + stackSort;
+
+                objStacks[idx].Add(obj);
+            }
+            return true;
+        }
+
+        public QuarterBlockType PopQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant)
+        {
+            if (tileQuarterStacks.TryGetValue(gridPos, out var typeStacks) && tileQuarterObjectStacks.TryGetValue(gridPos, out var objStacks))
+            {
+                int idx = (int)quadrant;
+                if (typeStacks[idx] != null && typeStacks[idx].Count > 0)
+                {
+                    int topIndex = typeStacks[idx].Count - 1;
+                    QuarterBlockType topType = typeStacks[idx][topIndex];
+                    typeStacks[idx].RemoveAt(topIndex);
+
+                    if (objStacks[idx] != null && objStacks[idx].Count > topIndex)
+                    {
+                        GameObject topObj = objStacks[idx][topIndex];
+                        objStacks[idx].RemoveAt(topIndex);
+                        if (topObj != null)
+                        {
+                            if (Application.isPlaying) Destroy(topObj);
+                            else DestroyImmediate(topObj);
+                        }
+                    }
+                    return topType;
+                }
+            }
+            return QuarterBlockType.None;
+        }
+
+        public void SetQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant, QuarterBlockType type)
+        {
+            if (type == QuarterBlockType.None)
+            {
+                PopQuarterBlock(gridPos, quadrant);
+            }
+            else
+            {
+                PushQuarterBlock(gridPos, quadrant, type);
+            }
         }
 
         public void RemoveQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant)
         {
-            SetQuarterBlock(gridPos, quadrant, QuarterBlockType.None);
+            PopQuarterBlock(gridPos, quadrant);
         }
 
         public void CycleQuarterBlock(Vector2Int gridPos, BlockQuadrant quadrant)
         {
-            QuarterBlockType current = GetQuarterBlock(gridPos, quadrant);
-            QuarterBlockType next;
-            switch (current)
+            QuarterBlockType current = GetTopQuarterBlock(gridPos, quadrant);
+            if (current == QuarterBlockType.None)
             {
-                case QuarterBlockType.None:  next = QuarterBlockType.Dirt; break;
-                case QuarterBlockType.Dirt:  next = QuarterBlockType.Grass; break;
-                case QuarterBlockType.Grass: next = QuarterBlockType.None; break;
-                default: next = QuarterBlockType.Dirt; break;
+                PushQuarterBlock(gridPos, quadrant, QuarterBlockType.Grass);
             }
-            SetQuarterBlock(gridPos, quadrant, next);
+            else if (current == QuarterBlockType.Grass)
+            {
+                PopQuarterBlock(gridPos, quadrant);
+                PushQuarterBlock(gridPos, quadrant, QuarterBlockType.Dirt);
+            }
+            else if (current == QuarterBlockType.Dirt)
+            {
+                PopQuarterBlock(gridPos, quadrant);
+                PushQuarterBlock(gridPos, quadrant, QuarterBlockType.Log);
+            }
+            else
+            {
+                PopQuarterBlock(gridPos, quadrant);
+            }
         }
 
-        private void UpdateQuadrantVisual(Vector2Int gridPos, BlockQuadrant quadrant, QuarterBlockType type)
+        /// <summary>
+        /// Finds the target tile, quadrant, and top surface elevation where the cursor is pointing.
+        /// Prioritizes existing elevated stacks so aiming at a raised surface directly targets it for stacking!
+        /// </summary>
+        public (Vector2Int gridPos, BlockQuadrant quadrant, int elevation) GetHoveredPlacementTarget(Vector2 mouseWorld)
         {
-            if (!tileQuarterObjects.TryGetValue(gridPos, out var objs))
-            {
-                objs = new GameObject[4];
-                tileQuarterObjects[gridPos] = objs;
-            }
+            Vector2Int groundPos = WorldToTileCoord(mouseWorld);
 
-            int idx = (int)quadrant;
-            GameObject currentObj = objs[idx];
+            // 1. Check nearby existing elevated stacks
+            int bestElevation = -1;
+            Vector2Int bestGrid = groundPos;
+            BlockQuadrant bestQuad = BlockQuadrant.North;
 
-            if (type == QuarterBlockType.None)
+            for (int dx = -2; dx <= 2; dx++)
             {
-                if (currentObj != null)
+                for (int dy = -2; dy <= 2; dy++)
                 {
-                    if (Application.isPlaying) Destroy(currentObj);
-                    else DestroyImmediate(currentObj);
-                    objs[idx] = null;
+                    Vector2Int checkPos = new Vector2Int(groundPos.x + dx, groundPos.y + dy);
+                    if (!tileQuarterStacks.TryGetValue(checkPos, out var stacks)) continue;
+
+                    for (int q = 0; q < 4; q++)
+                    {
+                        int height = (stacks[q] != null) ? stacks[q].Count : 0;
+                        if (height <= 0) continue;
+
+                        BlockQuadrant bq = (BlockQuadrant)q;
+                        Vector2 surfaceCenter = GetTileVisualCenter(checkPos, 0) + GetQuadrantOffset(bq) + new Vector2(0f, height * quarterBlockStackStepHeight);
+
+                        float diffX = Mathf.Abs(mouseWorld.x - surfaceCenter.x);
+                        float diffY = Mathf.Abs(mouseWorld.y - surfaceCenter.y);
+
+                        // 2:1 isometric diamond hit-test for top surface
+                        if ((diffX / 0.22f + diffY / 0.11f) <= 1.0f)
+                        {
+                            if (height > bestElevation)
+                            {
+                                bestElevation = height;
+                                bestGrid = checkPos;
+                                bestQuad = bq;
+                            }
+                        }
+                    }
                 }
-                return;
             }
 
-            Sprite targetSprite = (type == QuarterBlockType.Grass) ? quarterGrassSprite : quarterDirtSprite;
-            if (targetSprite == null) return;
-
-            if (currentObj == null)
+            if (bestElevation >= 0)
             {
-                currentObj = new GameObject($"QuarterBlock_{gridPos.x}_{gridPos.y}_{quadrant}");
-                currentObj.transform.SetParent(transform, false);
-                objs[idx] = currentObj;
+                return (bestGrid, bestQuad, bestElevation);
             }
 
-            Vector2 center = GetTileVisualCenter(gridPos, 0);
-            Vector2 quadPos = center + GetQuadrantOffset(quadrant);
-            currentObj.transform.position = new Vector3(quadPos.x, quadPos.y, 0f);
-
-            SpriteRenderer sr = currentObj.GetComponent<SpriteRenderer>();
-            if (sr == null) sr = currentObj.AddComponent<SpriteRenderer>();
-
-            sr.sprite = targetSprite;
-            int baseOrder = IsometricCoordinates.CalculateSortingOrder(gridPos.x, gridPos.y, 0, -8000 + 4);
-            sr.sortingOrder = enableSortingDepth ? (baseOrder + GetQuadrantSortingOffset(quadrant)) : baseOrder;
+            // 2. Default to ground level tile
+            BlockQuadrant groundQuad = GetQuadrantFromWorld(mouseWorld, groundPos);
+            int groundStack = GetStackHeight(groundPos, groundQuad);
+            return (groundPos, groundQuad, groundStack);
         }
 
         public void ClearAllQuarterBlocks()
         {
-            foreach (var kvp in tileQuarterObjects)
+            foreach (var kvp in tileQuarterObjectStacks)
             {
                 if (kvp.Value == null) continue;
-                for (int i = 0; i < kvp.Value.Length; i++)
+                for (int q = 0; q < kvp.Value.Length; q++)
                 {
-                    if (kvp.Value[i] != null)
+                    if (kvp.Value[q] == null) continue;
+                    for (int i = 0; i < kvp.Value[q].Count; i++)
                     {
-                        if (Application.isPlaying) Destroy(kvp.Value[i]);
-                        else DestroyImmediate(kvp.Value[i]);
+                        if (kvp.Value[q][i] != null)
+                        {
+                            if (Application.isPlaying) Destroy(kvp.Value[q][i]);
+                            else DestroyImmediate(kvp.Value[q][i]);
+                        }
                     }
+                    kvp.Value[q].Clear();
                 }
             }
-            tileQuarterObjects.Clear();
-            tileQuarterBlocks.Clear();
+            tileQuarterObjectStacks.Clear();
+            tileQuarterStacks.Clear();
         }
     }
 }

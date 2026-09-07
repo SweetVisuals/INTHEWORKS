@@ -14,7 +14,7 @@ namespace IsometricGame.Environment
 {
     public enum HoverHighlightMode
     {
-        Contextual = 0, // Automatically highlights quarter block if hovering over one, else normal tile outline
+        Contextual = 0, // Automatically highlights quad only when holding quad block, else normal tile outline
         NormalOnly = 1, // Always normal full-tile diamond outline
         QuarterOnly = 2 // Always quarter-block quadrant outline
     }
@@ -22,14 +22,18 @@ namespace IsometricGame.Environment
     /// <summary>
     /// Manages the visual block hover highlight cursor in 2D Isometric world space
     /// and the progressive breaking block animation system:
-    /// - Tracks mouse position, detects hovered tile and quadrant.
-    /// - Displays white hover outlines:
-    ///   - Normal Block: 'Assets/Sprites/normal block hover white outline.png'
-    ///   - Quarter Block: 'Assets/Sprites/quarter block white outline.png'
-    /// - Holding Left-Click plays the 8-stage 'breaking block animation 32x16.png'
-    ///   overlay directly on top of the tile diamond.
-    /// - Breaking a full block drops 4 small floating quarter blocks on the floor.
-    /// - Breaking a quarter block drops 1 small floating quarter block on the floor.
+    /// - Tracks mouse position, detects hovered tile, quadrant, and stacked surface elevation.
+    /// - ONLY shows the quad highlight when holding a quad block tile (Grass, Dirt, Log).
+    ///   - Displays directional quad highlights:
+    ///     - North: 'Assets/Sprites/north quad highlight.png'
+    ///     - East:  'Assets/Sprites/east quad highlight.png'
+    ///     - South: 'Assets/Sprites/south quad highlight.png'
+    ///     - West:  'Assets/Sprites/west quad highlight.png'
+    ///   - Gently and slowly pulses to indicate placement readiness.
+    ///   - Shows on the surface of quad blocks so you can build up vertically.
+    /// - Displays normal block hover outline ('Assets/Sprites/normal block hover white outline.png') when not holding quad block.
+    /// - Suppresses tile outlines when targeting a harvestable pine tree.
+    /// - Holding Left-Click breaks blocks with the 8-stage cracking animation.
     /// </summary>
     [ExecuteAlways]
     [DefaultExecutionOrder(-40)]
@@ -42,12 +46,18 @@ namespace IsometricGame.Environment
         [SerializeField] private HoverHighlightMode hoverMode = HoverHighlightMode.Contextual;
         [Tooltip("Key to toggle between Normal and Quarter hover modes (Q)")]
         [SerializeField] private bool allowKeyToggle = true;
-        [Tooltip("Whether clicking left-click (hold) breaks blocks and right-click places/cycles them")]
+        [Tooltip("Whether clicking left-click (hold) breaks blocks and right-click places them")]
         [SerializeField] private bool enableBlockInteraction = true;
 
         [Header("Hover Outline Sprites")]
         [SerializeField] private Sprite normalBlockOutlineSprite;
         [SerializeField] private Sprite quarterBlockOutlineSprite;
+
+        [Header("Directional Quad Highlight Sprites (N, E, S, W)")]
+        [SerializeField] private Sprite northQuadHighlightSprite;
+        [SerializeField] private Sprite eastQuadHighlightSprite;
+        [SerializeField] private Sprite southQuadHighlightSprite;
+        [SerializeField] private Sprite westQuadHighlightSprite;
 
         [Header("Breaking Block Settings")]
         [Tooltip("Seconds required to hold left click to completely break a block")]
@@ -57,17 +67,19 @@ namespace IsometricGame.Environment
         [Tooltip("Whether to spawn crunchy debris particles when a block breaks")]
         [SerializeField] private bool spawnBreakDebris = true;
 
-        [Header("Visual Styling")]
+        [Header("Visual Styling & Slow Pulse")]
         [SerializeField] private Color highlightColor = Color.white;
         [SerializeField] private bool enablePulse = true;
-        [SerializeField] private float pulseSpeed = 4.0f;
-        [SerializeField] private float minAlpha = 0.82f;
+        [Tooltip("Slow, gentle breathing pulse speed")]
+        [SerializeField] private float pulseSpeed = 2.2f;
+        [SerializeField] private float minAlpha = 0.45f;
         [SerializeField] private float maxAlpha = 1.0f;
 
         [Header("Runtime State")]
         [SerializeField] private bool isHovering = false;
         [SerializeField] private Vector2Int hoveredGridPos;
         [SerializeField] private BlockQuadrant hoveredQuadrant;
+        [SerializeField] private int hoveredElevation = 0;
         [SerializeField] private bool showingQuarterOutline;
 
         [Header("Breaking Runtime State")]
@@ -75,12 +87,15 @@ namespace IsometricGame.Environment
         [SerializeField] private float breakTimer = 0f;
         [SerializeField] private Vector2Int breakingGridPos;
         [SerializeField] private BlockQuadrant breakingQuadrant;
+        [SerializeField] private int breakingElevation = 0;
         [SerializeField] private bool isBreakingQuarter = false;
 
         private GameObject normalOutlineObj;
         private SpriteRenderer normalRenderer;
         private GameObject quarterOutlineObj;
         private SpriteRenderer quarterRenderer;
+        private GameObject quadHighlightObj;
+        private SpriteRenderer quadHighlightRenderer;
         private GameObject breakingOverlayObj;
         private SpriteRenderer breakingRenderer;
 
@@ -93,6 +108,7 @@ namespace IsometricGame.Environment
         public bool IsHovering => isHovering;
         public Vector2Int HoveredGridPos => hoveredGridPos;
         public BlockQuadrant HoveredQuadrant => hoveredQuadrant;
+        public int HoveredElevation => hoveredElevation;
         public bool IsBreaking => isBreaking;
         public float BreakProgress => Mathf.Clamp01(breakTimer / breakDuration);
 
@@ -148,6 +164,22 @@ namespace IsometricGame.Environment
             {
                 quarterBlockOutlineSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/quarter block white outline.png");
             }
+            if (northQuadHighlightSprite == null)
+            {
+                northQuadHighlightSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/north quad highlight.png");
+            }
+            if (eastQuadHighlightSprite == null)
+            {
+                eastQuadHighlightSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/east quad highlight.png");
+            }
+            if (southQuadHighlightSprite == null)
+            {
+                southQuadHighlightSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/south quad highlight.png");
+            }
+            if (westQuadHighlightSprite == null)
+            {
+                westQuadHighlightSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/west quad highlight.png");
+            }
 
             if (breakFrames == null || breakFrames.Length < 8 || breakFrames[0] == null)
             {
@@ -168,7 +200,6 @@ namespace IsometricGame.Environment
                 }
                 else
                 {
-                    // Fallback to manual slice from Texture2D
                     Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(breakPath);
                     if (tex != null)
                     {
@@ -182,13 +213,36 @@ namespace IsometricGame.Environment
                 }
             }
 #endif
+            if (northQuadHighlightSprite == null || eastQuadHighlightSprite == null || southQuadHighlightSprite == null || westQuadHighlightSprite == null)
+            {
+                Sprite[] all = Resources.FindObjectsOfTypeAll<Sprite>();
+                foreach (var sp in all)
+                {
+                    if (northQuadHighlightSprite == null && sp.name.StartsWith("north quad highlight")) northQuadHighlightSprite = sp;
+                    if (eastQuadHighlightSprite == null && sp.name.StartsWith("east quad highlight")) eastQuadHighlightSprite = sp;
+                    if (southQuadHighlightSprite == null && sp.name.StartsWith("south quad highlight")) southQuadHighlightSprite = sp;
+                    if (westQuadHighlightSprite == null && sp.name.StartsWith("west quad highlight")) westQuadHighlightSprite = sp;
+                }
+            }
+        }
+
+        public Sprite GetQuadHighlightSprite(BlockQuadrant quadrant)
+        {
+            switch (quadrant)
+            {
+                case BlockQuadrant.North: return northQuadHighlightSprite;
+                case BlockQuadrant.East:  return eastQuadHighlightSprite;
+                case BlockQuadrant.South: return southQuadHighlightSprite;
+                case BlockQuadrant.West:  return westQuadHighlightSprite;
+                default: return northQuadHighlightSprite;
+            }
         }
 
         private void CreateVisualObjects()
         {
             EnsureSpritesLoaded();
 
-            // 1. Normal Outline Object
+            // 1. Normal Full-Tile Diamond Outline
             if (normalOutlineObj == null)
             {
                 Transform existing = transform.Find("Normal_Hover_Outline");
@@ -200,7 +254,19 @@ namespace IsometricGame.Environment
             normalRenderer.sprite = normalBlockOutlineSprite;
             normalRenderer.color = highlightColor;
 
-            // 2. Quarter Outline Object
+            // 2. Directional Quad Highlight Cursor (N, E, S, W)
+            if (quadHighlightObj == null)
+            {
+                Transform existing = transform.Find("Quad_Highlight_Cursor");
+                quadHighlightObj = existing != null ? existing.gameObject : new GameObject("Quad_Highlight_Cursor");
+                quadHighlightObj.transform.SetParent(transform, false);
+            }
+            quadHighlightRenderer = quadHighlightObj.GetComponent<SpriteRenderer>();
+            if (quadHighlightRenderer == null) quadHighlightRenderer = quadHighlightObj.AddComponent<SpriteRenderer>();
+            quadHighlightRenderer.sprite = northQuadHighlightSprite;
+            quadHighlightRenderer.color = highlightColor;
+
+            // 3. Fallback Quarter Outline Object
             if (quarterOutlineObj == null)
             {
                 Transform existing = transform.Find("Quarter_Hover_Outline");
@@ -212,7 +278,7 @@ namespace IsometricGame.Environment
             quarterRenderer.sprite = quarterBlockOutlineSprite;
             quarterRenderer.color = highlightColor;
 
-            // 3. Breaking Block Cracking Overlay Object
+            // 4. Breaking Block Cracking Overlay Object
             if (breakingOverlayObj == null)
             {
                 Transform existing = transform.Find("Breaking_Block_Overlay");
@@ -252,7 +318,6 @@ namespace IsometricGame.Environment
 #endif
             if (togglePressed)
             {
-                // Cycle: Contextual -> NormalOnly -> QuarterOnly -> Contextual
                 switch (hoverMode)
                 {
                     case HoverHighlightMode.Contextual:
@@ -271,6 +336,14 @@ namespace IsometricGame.Environment
         private void UpdateHoverTracking()
         {
             if (IsPointerOverUI())
+            {
+                HideHighlight();
+                CancelBreaking();
+                return;
+            }
+
+            // If hovering over a tree, suppress block outline
+            if (HarvestableTree.HoveredTree != null)
             {
                 HideHighlight();
                 CancelBreaking();
@@ -297,63 +370,89 @@ namespace IsometricGame.Environment
             Vector3 worldPoint3 = cam.ScreenToWorldPoint(new Vector3(mouseScreen.x, mouseScreen.y, -cam.transform.position.z));
             Vector2 mouseWorld = new Vector2(worldPoint3.x, worldPoint3.y);
 
-            // Calculate hovered tile & quadrant
-            hoveredGridPos = QuarterBlockManager.WorldToTileCoord(mouseWorld);
-            hoveredQuadrant = QuarterBlockManager.GetQuadrantFromWorld(mouseWorld, hoveredGridPos);
+            // 1. Placement Target with Elevation / Surface Stacking
+            if (QuarterBlockManager.Instance != null)
+            {
+                var target = QuarterBlockManager.Instance.GetHoveredPlacementTarget(mouseWorld);
+                hoveredGridPos = target.gridPos;
+                hoveredQuadrant = target.quadrant;
+                hoveredElevation = target.elevation;
+            }
+            else
+            {
+                hoveredGridPos = QuarterBlockManager.WorldToTileCoord(mouseWorld);
+                hoveredQuadrant = QuarterBlockManager.GetQuadrantFromWorld(mouseWorld, hoveredGridPos);
+                hoveredElevation = 0;
+            }
             isHovering = true;
 
-            // Determine whether to display Normal outline or Quarter outline
-            bool showQuarter = false;
+            // 2. Determine whether holding quad block:
+            // "only show the quad highlight when holding a quad block tile"
+            bool isHoldingQuad = QuarterBlockManager.Instance != null && QuarterBlockManager.Instance.IsHoldingQuadBlock(out QuarterBlockType heldQuadType);
+
+            bool showQuadHighlight = false;
             if (hoverMode == HoverHighlightMode.QuarterOnly)
             {
-                showQuarter = true;
+                showQuadHighlight = true;
             }
             else if (hoverMode == HoverHighlightMode.NormalOnly)
             {
-                showQuarter = false;
+                showQuadHighlight = false;
             }
-            else // Contextual
+            else // Contextual: strictly only when holding a quad block tile
             {
-                bool hasQuarterBlocks = QuarterBlockManager.Instance != null && QuarterBlockManager.Instance.HasAnyQuarterBlocks(hoveredGridPos);
-                showQuarter = hasQuarterBlocks;
+                showQuadHighlight = isHoldingQuad;
             }
 
-            showingQuarterOutline = showQuarter;
+            showingQuarterOutline = showQuadHighlight;
 
-            // Pulse alpha for hover outline
+            // 3. Slow gentle pulse
             float currentAlpha = maxAlpha;
+            float pulseScale = 1.0f;
             if (enablePulse)
             {
                 float t = (Mathf.Sin(Time.time * pulseSpeed) + 1f) * 0.5f;
-                currentAlpha = Mathf.Lerp(minAlpha, maxAlpha, t);
+                currentAlpha = Mathf.SmoothStep(minAlpha, maxAlpha, t);
+                pulseScale = Mathf.Lerp(1.0f, 1.03f, t);
             }
             Color renderColor = new Color(highlightColor.r, highlightColor.g, highlightColor.b, currentAlpha);
 
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, 0);
+            float stepHeight = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuarterBlockStackStepHeight : 0.15625f;
             int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, 0, -8000 + 50);
 
-            if (showQuarter)
+            if (showQuadHighlight)
             {
                 if (normalOutlineObj != null) normalOutlineObj.SetActive(false);
-                if (quarterOutlineObj != null)
+                if (quarterOutlineObj != null) quarterOutlineObj.SetActive(false);
+
+                if (quadHighlightObj != null)
                 {
-                    quarterOutlineObj.SetActive(true);
-                    Vector2 quadOffset = QuarterBlockManager.GetQuadrantOffset(hoveredQuadrant);
-                    quarterOutlineObj.transform.position = new Vector3(tileVisualCenter.x + quadOffset.x, tileVisualCenter.y + quadOffset.y, 0f);
-                    if (quarterRenderer != null)
+                    quadHighlightObj.SetActive(true);
+                    // Elevated top surface position so you can build up!
+                    Vector2 surfacePos = tileVisualCenter + new Vector2(0f, hoveredElevation * stepHeight);
+                    quadHighlightObj.transform.position = new Vector3(surfacePos.x, surfacePos.y, 0f);
+                    quadHighlightObj.transform.localScale = new Vector3(pulseScale, pulseScale, 1f);
+
+                    if (quadHighlightRenderer != null)
                     {
-                        quarterRenderer.color = renderColor;
-                        quarterRenderer.sortingOrder = baseSortingOrder + QuarterBlockManager.GetQuadrantSortingOffset(hoveredQuadrant);
+                        quadHighlightRenderer.sprite = GetQuadHighlightSprite(hoveredQuadrant);
+                        quadHighlightRenderer.color = renderColor;
+                        int stackOrder = hoveredElevation * 10;
+                        quadHighlightRenderer.sortingOrder = baseSortingOrder + stackOrder + QuarterBlockManager.GetQuadrantSortingOffset(hoveredQuadrant) + 15;
                     }
                 }
             }
             else
             {
+                if (quadHighlightObj != null) quadHighlightObj.SetActive(false);
                 if (quarterOutlineObj != null) quarterOutlineObj.SetActive(false);
+
                 if (normalOutlineObj != null)
                 {
                     normalOutlineObj.SetActive(true);
                     normalOutlineObj.transform.position = new Vector3(tileVisualCenter.x, tileVisualCenter.y, 0f);
+                    normalOutlineObj.transform.localScale = Vector3.one;
                     if (normalRenderer != null)
                     {
                         normalRenderer.color = renderColor;
@@ -366,6 +465,13 @@ namespace IsometricGame.Environment
         private void HandleInteractionInput()
         {
             if (!enableBlockInteraction) return;
+
+            // If hovering over a harvestable tree, let HarvestableTree process clicks!
+            if (HarvestableTree.HoveredTree != null)
+            {
+                CancelBreaking();
+                return;
+            }
 
             bool leftClickHeld = false;
             bool rightClickDown = false;
@@ -381,29 +487,21 @@ namespace IsometricGame.Environment
             rightClickDown = Input.GetMouseButtonDown(1);
 #endif
 
-            // 1. Right Click: Place Quarter Block from Selected Hotbar Slot
+            // 1. Right Click: Place / Build Up Quarter Block when holding quad block
             if (rightClickDown && isHovering && !IsPointerOverUI())
             {
                 if (QuarterBlockManager.Instance != null)
                 {
-                    QuarterBlockType placeType = QuarterBlockType.Grass;
-                    if (IsometricGame.UI.HotbarUI.Instance != null)
+                    if (QuarterBlockManager.Instance.IsHoldingQuadBlock(out QuarterBlockType heldType))
                     {
-                        int selected = IsometricGame.UI.HotbarUI.Instance.SelectedSlotIndex;
-                        if (selected == 1) placeType = QuarterBlockType.Dirt;
-                        else if (selected == 0) placeType = QuarterBlockType.Grass;
-                    }
-
-                    if (QuarterBlockManager.Instance.HasInInventory(placeType))
-                    {
-                        QuarterBlockManager.Instance.ConsumeFromInventory(placeType, 1);
-                        QuarterBlockManager.Instance.SetQuarterBlock(hoveredGridPos, hoveredQuadrant, placeType);
-                        if (IsometricGame.UI.HotbarUI.Instance != null) IsometricGame.UI.HotbarUI.Instance.SyncWithInventory();
-                    }
-                    else
-                    {
-                        QuarterBlockManager.Instance.CycleQuarterBlock(hoveredGridPos, hoveredQuadrant);
-                        if (IsometricGame.UI.HotbarUI.Instance != null) IsometricGame.UI.HotbarUI.Instance.SyncWithInventory();
+                        if (QuarterBlockManager.Instance.PushQuarterBlock(hoveredGridPos, hoveredQuadrant, heldType))
+                        {
+                            QuarterBlockManager.Instance.ConsumeFromInventory(heldType, 1);
+                            if (IsometricGame.UI.HotbarUI.Instance != null)
+                            {
+                                IsometricGame.UI.HotbarUI.Instance.SyncWithInventory();
+                            }
+                        }
                     }
                 }
             }
@@ -411,19 +509,17 @@ namespace IsometricGame.Environment
             // 2. Left Click (Hold): Breaking Block Animation & Destruction
             if (leftClickHeld && isHovering && !IsPointerOverUI())
             {
-                bool targetIsQuarter = showingQuarterOutline || hoverMode == HoverHighlightMode.QuarterOnly;
-                if (QuarterBlockManager.Instance != null && QuarterBlockManager.Instance.GetQuarterBlock(hoveredGridPos, hoveredQuadrant) != QuarterBlockType.None)
-                {
-                    targetIsQuarter = true;
-                }
+                int stackHeight = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.GetStackHeight(hoveredGridPos, hoveredQuadrant) : 0;
+                bool targetIsQuarter = stackHeight > 0;
 
                 // If targeting changed or not already breaking, start fresh break
-                if (!isBreaking || hoveredGridPos != breakingGridPos || (targetIsQuarter && hoveredQuadrant != breakingQuadrant))
+                if (!isBreaking || hoveredGridPos != breakingGridPos || (targetIsQuarter && (hoveredQuadrant != breakingQuadrant || stackHeight != breakingElevation)))
                 {
                     isBreaking = true;
                     breakTimer = 0f;
                     breakingGridPos = hoveredGridPos;
                     breakingQuadrant = hoveredQuadrant;
+                    breakingElevation = stackHeight;
                     isBreakingQuarter = targetIsQuarter;
                 }
 
@@ -462,6 +558,7 @@ namespace IsometricGame.Environment
             breakingOverlayObj.SetActive(true);
 
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(breakingGridPos, 0);
+            float stepHeight = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuarterBlockStackStepHeight : 0.15625f;
             int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(breakingGridPos.x, breakingGridPos.y, 0, -8000 + 40);
 
             // Micro-vibration strike shake
@@ -469,10 +566,14 @@ namespace IsometricGame.Environment
 
             if (isBreakingQuarter)
             {
+                int topElevation = Mathf.Max(0, breakingElevation - 1);
                 Vector2 quadOffset = QuarterBlockManager.GetQuadrantOffset(breakingQuadrant);
-                breakingOverlayObj.transform.position = new Vector3(tileVisualCenter.x + quadOffset.x + shakeX, tileVisualCenter.y + quadOffset.y, 0f);
+                Vector2 targetPos = tileVisualCenter + quadOffset + new Vector2(shakeX, topElevation * stepHeight);
+
+                breakingOverlayObj.transform.position = new Vector3(targetPos.x, targetPos.y, 0f);
                 breakingOverlayObj.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
-                breakingRenderer.sortingOrder = baseSortingOrder + QuarterBlockManager.GetQuadrantSortingOffset(breakingQuadrant);
+                int stackOrder = topElevation * 10;
+                breakingRenderer.sortingOrder = baseSortingOrder + stackOrder + QuarterBlockManager.GetQuadrantSortingOffset(breakingQuadrant) + 12;
             }
             else
             {
@@ -485,28 +586,31 @@ namespace IsometricGame.Environment
         private void ExecuteBlockBreak()
         {
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(breakingGridPos, 0);
+            float stepHeight = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuarterBlockStackStepHeight : 0.15625f;
 
             if (isBreakingQuarter)
             {
                 QuarterBlockType qType = QuarterBlockType.Grass;
+                int topElevation = 0;
                 if (QuarterBlockManager.Instance != null)
                 {
-                    QuarterBlockType existing = QuarterBlockManager.Instance.GetQuarterBlock(breakingGridPos, breakingQuadrant);
-                    if (existing != QuarterBlockType.None) qType = existing;
-                    QuarterBlockManager.Instance.RemoveQuarterBlock(breakingGridPos, breakingQuadrant);
+                    topElevation = Mathf.Max(0, QuarterBlockManager.Instance.GetStackHeight(breakingGridPos, breakingQuadrant) - 1);
+                    qType = QuarterBlockManager.Instance.PopQuarterBlock(breakingGridPos, breakingQuadrant);
                 }
 
-                Vector2 quadPos = tileVisualCenter + QuarterBlockManager.GetQuadrantOffset(breakingQuadrant);
+                Vector2 quadPos = tileVisualCenter + QuarterBlockManager.GetQuadrantOffset(breakingQuadrant) + new Vector2(0f, topElevation * stepHeight);
 
                 // Drops 1 small floating quarter block
-                if (QuarterBlockManager.Instance != null)
+                if (QuarterBlockManager.Instance != null && qType != QuarterBlockType.None)
                 {
                     QuarterBlockManager.Instance.SpawnDroppedQuarterBlocks(quadPos, qType, 1);
                 }
 
                 if (spawnBreakDebris)
                 {
-                    Color c = (qType == QuarterBlockType.Dirt) ? new Color(0.55f, 0.38f, 0.22f) : new Color(0.38f, 0.65f, 0.28f);
+                    Color c = new Color(0.38f, 0.65f, 0.28f); // grass
+                    if (qType == QuarterBlockType.Dirt) c = new Color(0.55f, 0.38f, 0.22f);
+                    else if (qType == QuarterBlockType.Log) c = new Color(0.48f, 0.32f, 0.18f);
                     SpawnDebrisParticles(quadPos, c);
                 }
             }
@@ -568,14 +672,11 @@ namespace IsometricGame.Environment
             ps.Play();
         }
 
-        private void CancelBreaking()
+        public void CancelBreaking()
         {
             isBreaking = false;
             breakTimer = 0f;
-            if (breakingOverlayObj != null)
-            {
-                breakingOverlayObj.SetActive(false);
-            }
+            if (breakingOverlayObj != null) breakingOverlayObj.SetActive(false);
         }
 
         public void HideHighlight()
@@ -583,6 +684,13 @@ namespace IsometricGame.Environment
             isHovering = false;
             if (normalOutlineObj != null) normalOutlineObj.SetActive(false);
             if (quarterOutlineObj != null) quarterOutlineObj.SetActive(false);
+            if (quadHighlightObj != null) quadHighlightObj.SetActive(false);
+        }
+
+        private static bool IsPointerOverUI()
+        {
+            if (EventSystem.current == null) return false;
+            return EventSystem.current.IsPointerOverGameObject();
         }
 
         private static Vector2 GetMouseScreenPosition()
@@ -593,10 +701,10 @@ namespace IsometricGame.Environment
             return Input.mousePosition;
         }
 
-        private static bool IsPointerOverUI()
+        private void OnDisable()
         {
-            if (EventSystem.current == null) return false;
-            return EventSystem.current.IsPointerOverGameObject();
+            HideHighlight();
+            CancelBreaking();
         }
     }
 }
