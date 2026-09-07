@@ -52,8 +52,8 @@ namespace IsometricGame.Tilemap
         [SerializeField] private bool enableSortingDepth = true;
 
         [Header("Alignment / Offsets")]
-        [Tooltip("Vertical pixel shift in world units to elevate quad placement by 4px (+0.125 units)")]
-        [SerializeField] private float quadVerticalAdjustment = 0.125f;
+        [Tooltip("Vertical pixel shift in world units to elevate quad placement by 3px (+0.09375 units, moved down 1px)")]
+        [SerializeField] private float quadVerticalAdjustment = 0.09375f;
 
         // Tile -> 4 Quadrants -> Stack of types (North, South, East, West)
         private readonly Dictionary<Vector2Int, List<QuarterBlockType>[]> tileQuarterStacks = new Dictionary<Vector2Int, List<QuarterBlockType>[]>();
@@ -300,13 +300,13 @@ namespace IsometricGame.Tilemap
 
         /// <summary>
         /// Returns the visual diamond center in world coordinates for a tile at gridPos.
-        /// (In this project, 32x32 elevated half-tile grass blocks have their top visual diamond centered 3px / +0.09375 units above base pivot).
+        /// (In this project, 32x32 elevated half-tile grass blocks have their top visual diamond centered 2px / +0.0625 units above base pivot).
         /// </summary>
         public static Vector2 GetTileVisualCenter(Vector2Int gridPos, int elevation = 0)
         {
             Vector2 baseWorld = IsometricCoordinates.GridToWorld(gridPos.x, gridPos.y, 0);
             float elevOffset = elevation * 0.3125f; // 10px vertical block step per elevation layer
-            return baseWorld + new Vector2(0f, elevOffset + 0.09375f);
+            return baseWorld + new Vector2(0f, elevOffset + 0.0625f);
         }
 
         /// <summary>
@@ -314,25 +314,23 @@ namespace IsometricGame.Tilemap
         /// </summary>
         public static Vector2Int WorldToTileCoord(Vector2 worldPos)
         {
-            Vector2 relative = worldPos - new Vector2(0f, 0.09375f);
+            Vector2 relative = worldPos - new Vector2(0f, 0.0625f);
             return IsometricCoordinates.WorldToGrid(relative);
         }
 
         /// <summary>
         /// Determines which of the 4 sub-quadrants (North, South, East, West) a world point falls into within a tile.
+        /// Uses pixel-perfect screen-space relative coordinates from the tile visual center.
         /// </summary>
         public static BlockQuadrant GetQuadrantFromWorld(Vector2 worldPos, Vector2Int tileGridPos)
         {
-            Vector2 relative = worldPos - new Vector2(0f, 0.09375f);
-            float halfW = IsometricCoordinates.DefaultTileWidth * 0.5f;  // 0.5f
-            float halfH = IsometricCoordinates.DefaultTileHeight * 0.5f; // 0.25f
+            Vector2 center = GetTileVisualCenter(tileGridPos, 0);
+            float dx = worldPos.x - center.x;
+            float dy = worldPos.y - center.y;
 
-            float fx = (relative.x / halfW + relative.y / halfH) * 0.5f - tileGridPos.x;
-            float fy = (relative.y / halfH - relative.x / halfW) * 0.5f - tileGridPos.y;
-
-            if (fx >= 0f && fy >= 0f) return BlockQuadrant.North;
-            if (fx < 0f && fy < 0f) return BlockQuadrant.South;
-            if (fx >= 0f && fy < 0f) return BlockQuadrant.East;
+            if (dy > 0.5f * Mathf.Abs(dx)) return BlockQuadrant.North;
+            if (dy < -0.5f * Mathf.Abs(dx)) return BlockQuadrant.South;
+            if (dx > 0f) return BlockQuadrant.East;
             return BlockQuadrant.West;
         }
 
@@ -555,6 +553,68 @@ namespace IsometricGame.Tilemap
             BlockQuadrant groundQuad = GetQuadrantFromWorld(mouseWorld, groundPos);
             int groundStack = GetStackHeight(groundPos, groundQuad);
             return (groundPos, groundQuad, groundStack);
+        }
+
+        /// <summary>
+        /// Direct visual hit-test: returns true if mouseWorld is hovering directly over an individual placed quad block.
+        /// Searches top-down (highest elevation first, then front-most quadrant).
+        /// </summary>
+        public bool TryGetHoveredPlacedQuad(Vector2 mouseWorld, out Vector2Int gridPos, out BlockQuadrant quadrant, out int elevation)
+        {
+            gridPos = Vector2Int.zero;
+            quadrant = BlockQuadrant.North;
+            elevation = -1;
+
+            Vector2Int nearGrid = WorldToTileCoord(mouseWorld);
+            int bestElevation = -1;
+            Vector2Int bestGrid = nearGrid;
+            BlockQuadrant bestQuad = BlockQuadrant.North;
+
+            for (int dx = -2; dx <= 2; dx++)
+            {
+                for (int dy = -2; dy <= 2; dy++)
+                {
+                    Vector2Int checkPos = new Vector2Int(nearGrid.x + dx, nearGrid.y + dy);
+                    if (!tileQuarterStacks.TryGetValue(checkPos, out var stacks)) continue;
+
+                    for (int q = 0; q < 4; q++)
+                    {
+                        if (stacks[q] == null || stacks[q].Count == 0) continue;
+                        BlockQuadrant bq = (BlockQuadrant)q;
+
+                        int topElev = stacks[q].Count - 1;
+                        Vector2 quadWorldPos = GetQuarterBlockWorldPosition(checkPos, bq, topElev);
+
+                        // Quad visual diamond & cube face (16x16 isometric cube at 32 PPU):
+                        // Half-width = 8px (0.25f), Half-height = 4px (0.125f)
+                        float diffX = Mathf.Abs(mouseWorld.x - quadWorldPos.x);
+                        float diffY = mouseWorld.y - quadWorldPos.y;
+
+                        bool inTopDiamond = (diffX / 0.25f + Mathf.Abs(diffY) / 0.13f) <= 1.0f;
+                        bool inFrontFace = (diffX <= 0.25f) && (diffY >= -0.16f && diffY <= 0.05f) && ((diffX / 0.25f + Mathf.Abs(diffY + 0.08f) / 0.13f) <= 1.0f);
+
+                        if (inTopDiamond || inFrontFace)
+                        {
+                            if (topElev > bestElevation || (topElev == bestElevation && GetQuadrantSortingOffset(bq) > GetQuadrantSortingOffset(bestQuad)))
+                            {
+                                bestElevation = topElev;
+                                bestGrid = checkPos;
+                                bestQuad = bq;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bestElevation >= 0)
+            {
+                gridPos = bestGrid;
+                quadrant = bestQuad;
+                elevation = bestElevation;
+                return true;
+            }
+
+            return false;
         }
 
         public void ClearAllQuarterBlocks()

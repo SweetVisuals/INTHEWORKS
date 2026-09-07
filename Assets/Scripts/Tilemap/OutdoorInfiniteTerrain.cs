@@ -594,10 +594,28 @@ namespace IsometricGame.Tilemap
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -12000 + (layer * 10));
         }
 
+        public bool HasBushAt(int x, int y)
+        {
+            float nx = (x + bushSeed * 100f) * bushNoiseScale;
+            float ny = (y + bushSeed * 100f) * bushNoiseScale;
+            return Mathf.PerlinNoise(nx, ny) > bushThreshold;
+        }
+
+        public bool HasTreeAt(int x, int y)
+        {
+            float tnx = (x + treeSeed * 73f) * treeNoiseScale;
+            float tny = (y + treeSeed * 73f) * treeNoiseScale;
+            float treeGroveNoise = Mathf.PerlinNoise(tnx, tny);
+            float treeSubRoll = Mathf.PerlinNoise((x * 17.13f + treeSeed), (y * 31.87f + treeSeed));
+            return (treeGroveNoise > treeThreshold) && (treeSubRoll < treeSpawnProbability);
+        }
+
+        public bool HasVegetationAt(int x, int y) => HasBushAt(x, y) || HasTreeAt(x, y);
 
         public bool ShouldSpawnLongGrass(int x, int y)
         {
             if (longGrassSprite == null) return false;
+            if (HasVegetationAt(x, y)) return false;
 
             float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
             if (distToDoor <= doorClearRadius) return false;
@@ -648,6 +666,7 @@ namespace IsometricGame.Tilemap
         public bool ShouldSpawnShortGrass(int x, int y)
         {
             if (shortGrassSprite == null) return false;
+            if (HasVegetationAt(x, y)) return false;
 
             float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
             if (distToDoor <= doorClearRadius) return false;
@@ -681,6 +700,8 @@ namespace IsometricGame.Tilemap
 
         private void SpawnTinyFoliageIfRolled(Transform parent, int gridX, int gridY)
         {
+            if (HasVegetationAt(gridX, gridY)) return;
+
             // Variant 1 (1% independent spawn chance)
             if (tinyFoliage1Sprite != null && DeterministicRoll(gridX, gridY, tinyFoliageSeed + 101) < tinyFoliage1SpawnRate)
             {
@@ -855,7 +876,7 @@ namespace IsometricGame.Tilemap
         {
             if (bushSprite == null) return;
 
-            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0) + new Vector2(0f, grassTileSurfaceOffset);
             GameObject bushObj = new GameObject($"Bush_{gridX}_{gridY}");
             bushObj.transform.SetParent(parent, false);
             bushObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);

@@ -384,13 +384,16 @@ namespace IsometricGame.Environment
             Vector3 worldPoint3 = cam.ScreenToWorldPoint(new Vector3(mouseScreen.x, mouseScreen.y, -cam.transform.position.z));
             Vector2 mouseWorld = new Vector2(worldPoint3.x, worldPoint3.y);
 
-            // 1. Placement Target with Elevation / Surface Stacking
-            if (QuarterBlockManager.Instance != null)
+            // 1. Check if hovering directly over an individual placed quad block
+            hoveringPlacedQuad = false;
+            int hoveredQuadElevation = 0;
+            if (QuarterBlockManager.Instance != null && QuarterBlockManager.Instance.TryGetHoveredPlacedQuad(mouseWorld, out Vector2Int pqGrid, out BlockQuadrant pqQuad, out int pqElev))
             {
-                var target = QuarterBlockManager.Instance.GetHoveredPlacementTarget(mouseWorld);
-                hoveredGridPos = target.gridPos;
-                hoveredQuadrant = target.quadrant;
-                hoveredElevation = target.elevation;
+                hoveringPlacedQuad = true;
+                hoveredGridPos = pqGrid;
+                hoveredQuadrant = pqQuad;
+                hoveredQuadElevation = pqElev;
+                hoveredElevation = pqElev + 1;
             }
             else
             {
@@ -399,10 +402,6 @@ namespace IsometricGame.Environment
                 hoveredElevation = 0;
             }
             isHovering = true;
-
-            // Check if hovered quadrant has an existing placed quad block
-            int stackHeight = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.GetStackHeight(hoveredGridPos, hoveredQuadrant) : 0;
-            hoveringPlacedQuad = (stackHeight > 0);
 
             // Determine whether holding quad block
             bool isHoldingQuad = QuarterBlockManager.Instance != null && QuarterBlockManager.Instance.IsHoldingQuadBlock(out QuarterBlockType heldQuadType);
@@ -421,22 +420,21 @@ namespace IsometricGame.Environment
             bool isTileBroken = OutdoorInfiniteTerrain.Instance != null && OutdoorInfiniteTerrain.Instance.IsTileBroken(hoveredGridPos.x, hoveredGridPos.y);
             int groundElevation = isTileBroken ? -1 : 0;
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, groundElevation);
-            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0f;
+            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0.09375f;
             int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, groundElevation, -8000 + 50);
 
             // 3. Highlight Mode Execution:
             if (hoveringPlacedQuad && hoverMode != HoverHighlightMode.NormalOnly)
             {
-                // CASE A: Hovering over an existing placed quad block!
-                // "just use the quad white outline to highlight the quads once they are placed to break them"
+                // CASE A: Hovering over an individual placed quad block!
+                // Highlights that exact quad and allows breaking it
                 if (normalOutlineObj != null) normalOutlineObj.SetActive(false);
                 if (quadHighlightObj != null) quadHighlightObj.SetActive(false);
 
                 if (quarterOutlineObj != null)
                 {
                     quarterOutlineObj.SetActive(true);
-                    int topElevation = stackHeight - 1;
-                    Vector2 quadPos = QuarterBlockManager.Instance.GetQuarterBlockWorldPosition(hoveredGridPos, hoveredQuadrant, topElevation);
+                    Vector2 quadPos = QuarterBlockManager.Instance.GetQuarterBlockWorldPosition(hoveredGridPos, hoveredQuadrant, hoveredQuadElevation);
                     quarterOutlineObj.transform.position = new Vector3(quadPos.x, quadPos.y, 0f);
                     quarterOutlineObj.transform.localScale = Vector3.one;
 
@@ -444,14 +442,14 @@ namespace IsometricGame.Environment
                     {
                         quarterRenderer.sprite = quarterBlockOutlineSprite;
                         quarterRenderer.color = renderColor;
-                        int stackOrder = topElevation * 10;
+                        int stackOrder = hoveredQuadElevation * 10;
                         quarterRenderer.sortingOrder = baseSortingOrder + stackOrder + QuarterBlockManager.GetQuadrantSortingOffset(hoveredQuadrant) + 4;
                     }
                 }
             }
             else if (isHoldingQuad || hoverMode == HoverHighlightMode.QuarterOnly)
             {
-                // CASE B: Empty quadrant + holding a quad block tile (or QuarterOnly mode)!
+                // CASE B: Empty quadrant / top of stack + holding a quad block tile!
                 // Show directional placement highlight (N, E, S, W) pulsing slowly
                 if (normalOutlineObj != null) normalOutlineObj.SetActive(false);
                 if (quarterOutlineObj != null) quarterOutlineObj.SetActive(false);
@@ -459,8 +457,9 @@ namespace IsometricGame.Environment
                 if (quadHighlightObj != null)
                 {
                     quadHighlightObj.SetActive(true);
-                    Vector2 surfacePos = QuarterBlockManager.Instance.GetQuarterBlockWorldPosition(hoveredGridPos, hoveredQuadrant, hoveredElevation);
-                    quadHighlightObj.transform.position = new Vector3(surfacePos.x, surfacePos.y, 0f);
+                    Vector2 center = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, groundElevation);
+                    float elevY = hoveredElevation * (QuarterBlockManager.Instance != null ? QuarterBlockManager.Instance.QuarterBlockStackStepHeight : 0.15625f);
+                    quadHighlightObj.transform.position = new Vector3(center.x, center.y + elevY + quadVertAdjust, 0f);
                     quadHighlightObj.transform.localScale = new Vector3(pulseScale, pulseScale, 1f);
 
                     if (quadHighlightRenderer != null)
