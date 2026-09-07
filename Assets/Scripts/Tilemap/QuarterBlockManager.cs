@@ -46,8 +46,8 @@ namespace IsometricGame.Tilemap
         [SerializeField] private Sprite quarterPlankSprite;
 
         [Header("Stacking / Building Up")]
-        [Tooltip("Vertical world step height for stacking quarter blocks on top of each other (5px = 0.15625f at 32 PPU)")]
-        [SerializeField] private float quarterBlockStackStepHeight = 0.15625f;
+        [Tooltip("Vertical world step height for stacking quarter blocks on top of each other (8px = 0.25f at 32 PPU, moved up 3px from 5px)")]
+        [SerializeField] private float quarterBlockStackStepHeight = 0.25f;
         [SerializeField] private int maxStackHeight = 16;
         [SerializeField] private bool enableSortingDepth = true;
 
@@ -591,7 +591,7 @@ namespace IsometricGame.Tilemap
                         float diffY = mouseWorld.y - quadWorldPos.y;
 
                         bool inTopDiamond = (diffX / 0.25f + Mathf.Abs(diffY) / 0.13f) <= 1.0f;
-                        bool inFrontFace = (diffX <= 0.25f) && (diffY >= -0.16f && diffY <= 0.05f) && ((diffX / 0.25f + Mathf.Abs(diffY + 0.08f) / 0.13f) <= 1.0f);
+                        bool inFrontFace = (diffX <= 0.25f) && (diffY >= -0.25f && diffY <= 0.05f) && ((diffX / 0.25f + Mathf.Abs(diffY + 0.125f) / 0.13f) <= 1.0f);
 
                         if (inTopDiamond || inFrontFace)
                         {
