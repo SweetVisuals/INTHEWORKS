@@ -32,7 +32,8 @@ namespace IsometricGame.Editor
             if (canvas == null 
                 || Object.FindAnyObjectByType<ClockUI>() == null 
                 || Object.FindAnyObjectByType<EnergyBarUI>() == null 
-                || Object.FindAnyObjectByType<XpBarUI>() == null)
+                || Object.FindAnyObjectByType<XpBarUI>() == null
+                || Object.FindAnyObjectByType<QuickWarpUI>() == null)
             {
                 SetupMoneyHUD();
             }

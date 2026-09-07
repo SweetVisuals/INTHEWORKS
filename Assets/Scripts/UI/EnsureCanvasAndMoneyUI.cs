@@ -33,6 +33,7 @@ namespace IsometricGame.UI
         [SerializeField] private Sprite sleepTextSprite;
         [SerializeField] private Sprite openTextSprite;
         [SerializeField] private Sprite[] sleepingFrames;
+        [SerializeField] private Sprite[] warpFrames;
 #pragma warning restore CS0649
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -144,6 +145,11 @@ namespace IsometricGame.UI
             if (Object.FindAnyObjectByType<JobsBoardUI>() == null)
             {
                 helper.CreateJobsBoardUI(canvas);
+            }
+
+            if (Object.FindAnyObjectByType<QuickWarpUI>() == null)
+            {
+                helper.CreateQuickWarpHUD(canvas);
             }
 
             CustomGameCursor.EnsureCursorActive();
@@ -513,6 +519,38 @@ namespace IsometricGame.UI
             jobsUI.InitializeComponents();
         }
 
+        private void CreateQuickWarpHUD(Canvas canvas)
+        {
+            Transform existing = canvas.transform.Find("Quick_Warp_HUD");
+            if (existing != null) return;
+
+            GameObject warpObj = new GameObject("Quick_Warp_HUD", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+            warpObj.transform.SetParent(canvas.transform, false);
+
+            RectTransform rt = warpObj.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.one;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(1f, 1f);
+            rt.anchoredPosition = new Vector2(-24f, -150f);
+            rt.sizeDelta = new Vector2(64f, 64f);
+
+            CanvasGroup cg = warpObj.GetComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            cg.blocksRaycasts = false;
+            cg.interactable = false;
+
+            Image img = warpObj.GetComponent<Image>();
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            if (warpFrames != null && warpFrames.Length > 0 && warpFrames[0] != null)
+            {
+                img.sprite = warpFrames[0];
+            }
+
+            QuickWarpUI warpUI = warpObj.AddComponent<QuickWarpUI>();
+            warpUI.InitializeComponents(warpFrames);
+        }
+
         private void EnsureSpritesLoaded()
         {
 #if UNITY_EDITOR
@@ -596,6 +634,10 @@ namespace IsometricGame.UI
                 sleepingFrames[0] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/GUI/sleeping text frame 1.png");
                 sleepingFrames[1] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/GUI/sleeping text frame 2.png");
                 sleepingFrames[2] = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/GUI/sleeping text frame 3.png");
+            }
+            if (warpFrames == null || warpFrames.Length < 10 || warpFrames[0] == null)
+            {
+                warpFrames = UISpriteUtility.LoadSpriteFrames("Assets/Sprites/GUI/b press animation.png", 32, 32, 10);
             }
 #endif
         }
