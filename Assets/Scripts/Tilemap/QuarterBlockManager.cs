@@ -53,10 +53,35 @@ namespace IsometricGame.Tilemap
         public int QuarterGrassInventory => quarterGrassInventory;
         public int QuarterDirtInventory => quarterDirtInventory;
 
+        public Sprite QuarterGrassSprite => quarterGrassSprite;
+        public Sprite QuarterDirtSprite => quarterDirtSprite;
+
         public void AddToInventory(QuarterBlockType type, int count = 1)
         {
             if (type == QuarterBlockType.Grass) quarterGrassInventory += count;
             else if (type == QuarterBlockType.Dirt) quarterDirtInventory += count;
+        }
+
+        public bool HasInInventory(QuarterBlockType type, int count = 1)
+        {
+            if (type == QuarterBlockType.Grass) return quarterGrassInventory >= count;
+            if (type == QuarterBlockType.Dirt) return quarterDirtInventory >= count;
+            return false;
+        }
+
+        public bool ConsumeFromInventory(QuarterBlockType type, int count = 1)
+        {
+            if (type == QuarterBlockType.Grass && quarterGrassInventory >= count)
+            {
+                quarterGrassInventory -= count;
+                return true;
+            }
+            if (type == QuarterBlockType.Dirt && quarterDirtInventory >= count)
+            {
+                quarterDirtInventory -= count;
+                return true;
+            }
+            return false;
         }
 
         public void SpawnDroppedQuarterBlocks(Vector2 tileOrigin, QuarterBlockType type, int count = 4)

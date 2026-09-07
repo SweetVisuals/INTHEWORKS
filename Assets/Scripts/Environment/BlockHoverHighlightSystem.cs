@@ -381,12 +381,30 @@ namespace IsometricGame.Environment
             rightClickDown = Input.GetMouseButtonDown(1);
 #endif
 
-            // 1. Right Click: Place / Cycle Quarter Blocks
+            // 1. Right Click: Place Quarter Block from Selected Hotbar Slot
             if (rightClickDown && isHovering && !IsPointerOverUI())
             {
                 if (QuarterBlockManager.Instance != null)
                 {
-                    QuarterBlockManager.Instance.CycleQuarterBlock(hoveredGridPos, hoveredQuadrant);
+                    QuarterBlockType placeType = QuarterBlockType.Grass;
+                    if (IsometricGame.UI.HotbarUI.Instance != null)
+                    {
+                        int selected = IsometricGame.UI.HotbarUI.Instance.SelectedSlotIndex;
+                        if (selected == 1) placeType = QuarterBlockType.Dirt;
+                        else if (selected == 0) placeType = QuarterBlockType.Grass;
+                    }
+
+                    if (QuarterBlockManager.Instance.HasInInventory(placeType))
+                    {
+                        QuarterBlockManager.Instance.ConsumeFromInventory(placeType, 1);
+                        QuarterBlockManager.Instance.SetQuarterBlock(hoveredGridPos, hoveredQuadrant, placeType);
+                        if (IsometricGame.UI.HotbarUI.Instance != null) IsometricGame.UI.HotbarUI.Instance.SyncWithInventory();
+                    }
+                    else
+                    {
+                        QuarterBlockManager.Instance.CycleQuarterBlock(hoveredGridPos, hoveredQuadrant);
+                        if (IsometricGame.UI.HotbarUI.Instance != null) IsometricGame.UI.HotbarUI.Instance.SyncWithInventory();
+                    }
                 }
             }
 

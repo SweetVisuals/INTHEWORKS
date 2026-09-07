@@ -207,6 +207,11 @@ namespace IsometricGame.Environment
                 QuarterBlockManager.Instance.AddToInventory(blockType, 1);
             }
 
+            if (IsometricGame.UI.HotbarUI.Instance != null)
+            {
+                IsometricGame.UI.HotbarUI.Instance.SyncWithInventory();
+            }
+
             Destroy(gameObject);
         }
 

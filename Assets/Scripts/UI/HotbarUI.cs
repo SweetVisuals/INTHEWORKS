@@ -10,7 +10,7 @@ namespace IsometricGame.UI
     /// <summary>
     /// Hotbar HUD Controller located at the bottom of the screen.
     /// Manages 4 item slots with selection highlighting, keyboard shortcuts (1-4),
-    /// mouse clicking, and slot punch animations.
+    /// mouse clicking, item icons, and stack count displays.
     /// </summary>
     public class HotbarUI : MonoBehaviour
     {
@@ -24,6 +24,7 @@ namespace IsometricGame.UI
         [SerializeField] private Image[] slotBackgrounds = new Image[4];
         [SerializeField] private Image[] itemIcons = new Image[4];
         [SerializeField] private RectTransform[] slotRects = new RectTransform[4];
+        [SerializeField] private PixelNumberDisplay[] slotCountDisplays = new PixelNumberDisplay[4];
 
         [Header("Selection Settings")]
         [SerializeField] private int selectedSlotIndex = 0;
@@ -50,11 +51,13 @@ namespace IsometricGame.UI
             EnsureSpritesLoaded();
             CacheSlotReferences();
             RefreshSlotVisuals();
+            SyncWithInventory();
         }
 
         private void Start()
         {
             SelectSlot(selectedSlotIndex, false);
+            SyncWithInventory();
         }
 
         private void Update()
@@ -65,6 +68,8 @@ namespace IsometricGame.UI
             {
                 CheckKeyboardInput();
             }
+
+            SyncWithInventory();
         }
 
         private void CheckKeyboardInput()
@@ -143,26 +148,80 @@ namespace IsometricGame.UI
             target.localScale = origScale;
         }
 
-        public void SetSlotItem(int slotIndex, Sprite itemSprite)
+        public void SetSlot(int slotIndex, Sprite itemSprite, int count)
         {
             if (slotIndex < 0 || slotIndex >= itemIcons.Length) return;
-            if (itemIcons[slotIndex] != null)
+
+            if (itemSprite != null && count > 0)
             {
-                if (itemSprite != null)
+                if (itemIcons[slotIndex] != null)
                 {
                     itemIcons[slotIndex].sprite = itemSprite;
                     itemIcons[slotIndex].gameObject.SetActive(true);
                 }
-                else
+
+                if (slotCountDisplays[slotIndex] == null && slotRects[slotIndex] != null)
+                {
+                    Transform existing = slotRects[slotIndex].Find("Item_Count");
+                    if (existing != null)
+                    {
+                        slotCountDisplays[slotIndex] = existing.GetComponent<PixelNumberDisplay>();
+                    }
+                    else
+                    {
+                        GameObject countObj = new GameObject("Item_Count", typeof(RectTransform));
+                        countObj.transform.SetParent(slotRects[slotIndex], false);
+                        RectTransform rt = countObj.GetComponent<RectTransform>();
+                        rt.anchorMin = new Vector2(1f, 0f);
+                        rt.anchorMax = new Vector2(1f, 0f);
+                        rt.pivot = new Vector2(1f, 0f);
+                        rt.anchoredPosition = new Vector2(-6f, 6f);
+                        rt.sizeDelta = new Vector2(28f, 16f);
+
+                        PixelNumberDisplay pnd = countObj.AddComponent<PixelNumberDisplay>();
+                        pnd.DigitScale = 2.5f;
+                        pnd.FormatCommas = false;
+                        pnd.Initialize();
+                        slotCountDisplays[slotIndex] = pnd;
+                    }
+                }
+
+                if (slotCountDisplays[slotIndex] != null)
+                {
+                    slotCountDisplays[slotIndex].gameObject.SetActive(true);
+                    slotCountDisplays[slotIndex].SetValue(count);
+                }
+            }
+            else
+            {
+                if (itemIcons[slotIndex] != null)
                 {
                     itemIcons[slotIndex].gameObject.SetActive(false);
+                }
+                if (slotCountDisplays[slotIndex] != null)
+                {
+                    slotCountDisplays[slotIndex].gameObject.SetActive(false);
                 }
             }
         }
 
+        public void SetSlotItem(int slotIndex, Sprite itemSprite)
+        {
+            SetSlot(slotIndex, itemSprite, itemSprite != null ? 1 : 0);
+        }
+
         public void ClearSlot(int slotIndex)
         {
-            SetSlotItem(slotIndex, null);
+            SetSlot(slotIndex, null, 0);
+        }
+
+        public void SyncWithInventory()
+        {
+            if (IsometricGame.Tilemap.QuarterBlockManager.Instance == null) return;
+
+            var qbm = IsometricGame.Tilemap.QuarterBlockManager.Instance;
+            SetSlot(0, qbm.QuarterGrassSprite, qbm.QuarterGrassInventory);
+            SetSlot(1, qbm.QuarterDirtSprite, qbm.QuarterDirtInventory);
         }
 
         private void EnsureSpritesLoaded()
@@ -196,6 +255,12 @@ namespace IsometricGame.UI
                     if (icon != null)
                     {
                         itemIcons[i] = icon.GetComponent<Image>();
+                    }
+
+                    Transform countTrans = slot.Find("Item_Count");
+                    if (countTrans != null)
+                    {
+                        slotCountDisplays[i] = countTrans.GetComponent<PixelNumberDisplay>();
                     }
                 }
             }
