@@ -20,7 +20,8 @@ namespace IsometricGame.Tilemap
         None = 0,
         Grass = 1,
         Dirt = 2,
-        Log = 3
+        Log = 3,
+        Plank = 4
     }
 
     /// <summary>
@@ -31,7 +32,7 @@ namespace IsometricGame.Tilemap
     ///   - East:  dx =  +8px (+0.250 units), dy =  0px (+0.000 units)
     ///   - West:  dx =  -8px (-0.250 units), dy =  0px (+0.000 units)
     /// - Supports vertical stacking / building up along each quadrant (step height = 5px / 0.15625 units).
-    /// - Manages Grass, Dirt, and Log quad blocks with inventory sync.
+    /// - Manages Grass, Dirt, Log, and Wood Plank quad blocks with inventory sync.
     /// </summary>
     [ExecuteAlways]
     public class QuarterBlockManager : MonoBehaviour
@@ -42,6 +43,7 @@ namespace IsometricGame.Tilemap
         [SerializeField] private Sprite quarterGrassSprite;
         [SerializeField] private Sprite quarterDirtSprite;
         [SerializeField] private Sprite quarterLogSprite;
+        [SerializeField] private Sprite quarterPlankSprite;
 
         [Header("Stacking / Building Up")]
         [Tooltip("Vertical world step height for stacking quarter blocks on top of each other (5px = 0.15625f at 32 PPU)")]
@@ -50,8 +52,8 @@ namespace IsometricGame.Tilemap
         [SerializeField] private bool enableSortingDepth = true;
 
         [Header("Alignment / Offsets")]
-        [Tooltip("Vertical pixel shift in world units to align placed quads with the tile diamond")]
-        [SerializeField] private float quadVerticalAdjustment = 0.0f;
+        [Tooltip("Vertical pixel shift in world units to elevate quad placement by 4px (+0.125 units)")]
+        [SerializeField] private float quadVerticalAdjustment = 0.125f;
 
         // Tile -> 4 Quadrants -> Stack of types (North, South, East, West)
         private readonly Dictionary<Vector2Int, List<QuarterBlockType>[]> tileQuarterStacks = new Dictionary<Vector2Int, List<QuarterBlockType>[]>();
@@ -62,14 +64,17 @@ namespace IsometricGame.Tilemap
         [SerializeField] private int quarterGrassInventory = 4;
         [SerializeField] private int quarterDirtInventory = 4;
         [SerializeField] private int quarterLogInventory = 0;
+        [SerializeField] private int quarterPlankInventory = 8;
 
         public int QuarterGrassInventory => quarterGrassInventory;
         public int QuarterDirtInventory => quarterDirtInventory;
         public int QuarterLogInventory => quarterLogInventory;
+        public int QuarterPlankInventory => quarterPlankInventory;
 
         public Sprite QuarterGrassSprite => quarterGrassSprite;
         public Sprite QuarterDirtSprite => quarterDirtSprite;
         public Sprite QuarterLogSprite => quarterLogSprite;
+        public Sprite QuarterPlankSprite => quarterPlankSprite;
         public float QuarterBlockStackStepHeight => quarterBlockStackStepHeight;
         public int MaxStackHeight => maxStackHeight;
         public float QuadVerticalAdjustment => quadVerticalAdjustment;
@@ -115,6 +120,11 @@ namespace IsometricGame.Tilemap
                 heldType = QuarterBlockType.Log;
                 return true;
             }
+            if (slot == 3 && quarterPlankInventory > 0)
+            {
+                heldType = QuarterBlockType.Plank;
+                return true;
+            }
             return false;
         }
 
@@ -123,6 +133,7 @@ namespace IsometricGame.Tilemap
             if (type == QuarterBlockType.Grass) quarterGrassInventory += count;
             else if (type == QuarterBlockType.Dirt) quarterDirtInventory += count;
             else if (type == QuarterBlockType.Log) quarterLogInventory += count;
+            else if (type == QuarterBlockType.Plank) quarterPlankInventory += count;
         }
 
         public bool HasInInventory(QuarterBlockType type, int count = 1)
@@ -130,6 +141,7 @@ namespace IsometricGame.Tilemap
             if (type == QuarterBlockType.Grass) return quarterGrassInventory >= count;
             if (type == QuarterBlockType.Dirt) return quarterDirtInventory >= count;
             if (type == QuarterBlockType.Log) return quarterLogInventory >= count;
+            if (type == QuarterBlockType.Plank) return quarterPlankInventory >= count;
             return false;
         }
 
@@ -150,6 +162,11 @@ namespace IsometricGame.Tilemap
                 quarterLogInventory -= count;
                 return true;
             }
+            if (type == QuarterBlockType.Plank && quarterPlankInventory >= count)
+            {
+                quarterPlankInventory -= count;
+                return true;
+            }
             return false;
         }
 
@@ -159,6 +176,7 @@ namespace IsometricGame.Tilemap
             Sprite sprite = quarterGrassSprite;
             if (type == QuarterBlockType.Dirt) sprite = quarterDirtSprite;
             else if (type == QuarterBlockType.Log) sprite = quarterLogSprite;
+            else if (type == QuarterBlockType.Plank) sprite = quarterPlankSprite;
 
             Vector2[] scatterOffsets = new Vector2[]
             {
@@ -226,17 +244,26 @@ namespace IsometricGame.Tilemap
             }
             if (quarterLogSprite == null)
             {
-                quarterLogSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/quarter block log block.png");
+                quarterLogSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/log quad (1).png");
+                if (quarterLogSprite == null)
+                {
+                    quarterLogSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/quarter block log block.png");
+                }
+            }
+            if (quarterPlankSprite == null)
+            {
+                quarterPlankSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/wood plank quad.png");
             }
 #endif
-            if (quarterGrassSprite == null || quarterDirtSprite == null || quarterLogSprite == null)
+            if (quarterGrassSprite == null || quarterDirtSprite == null || quarterLogSprite == null || quarterPlankSprite == null)
             {
                 Sprite[] all = Resources.FindObjectsOfTypeAll<Sprite>();
                 foreach (var s in all)
                 {
                     if (quarterGrassSprite == null && s.name.StartsWith("quarter grass block")) quarterGrassSprite = s;
                     if (quarterDirtSprite == null && s.name.StartsWith("quarter dirt block")) quarterDirtSprite = s;
-                    if (quarterLogSprite == null && s.name.StartsWith("quarter block log block")) quarterLogSprite = s;
+                    if (quarterLogSprite == null && (s.name.StartsWith("log quad") || s.name.StartsWith("quarter block log block"))) quarterLogSprite = s;
+                    if (quarterPlankSprite == null && s.name.StartsWith("wood plank quad")) quarterPlankSprite = s;
                 }
             }
         }
@@ -380,6 +407,7 @@ namespace IsometricGame.Tilemap
             Sprite targetSprite = quarterGrassSprite;
             if (type == QuarterBlockType.Dirt) targetSprite = quarterDirtSprite;
             else if (type == QuarterBlockType.Log) targetSprite = quarterLogSprite;
+            else if (type == QuarterBlockType.Plank) targetSprite = quarterPlankSprite;
 
             if (targetSprite != null)
             {
@@ -461,6 +489,11 @@ namespace IsometricGame.Tilemap
             {
                 PopQuarterBlock(gridPos, quadrant);
                 PushQuarterBlock(gridPos, quadrant, QuarterBlockType.Log);
+            }
+            else if (current == QuarterBlockType.Log)
+            {
+                PopQuarterBlock(gridPos, quadrant);
+                PushQuarterBlock(gridPos, quadrant, QuarterBlockType.Plank);
             }
             else
             {

@@ -223,6 +223,7 @@ namespace IsometricGame.UI
             SetSlot(0, qbm.QuarterGrassSprite, qbm.QuarterGrassInventory);
             SetSlot(1, qbm.QuarterDirtSprite, qbm.QuarterDirtInventory);
             SetSlot(2, qbm.QuarterLogSprite, qbm.QuarterLogInventory);
+            SetSlot(3, qbm.QuarterPlankSprite, qbm.QuarterPlankInventory);
         }
 
         private void EnsureSpritesLoaded()

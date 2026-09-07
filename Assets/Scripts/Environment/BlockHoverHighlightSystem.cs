@@ -482,7 +482,7 @@ namespace IsometricGame.Environment
                 if (normalOutlineObj != null)
                 {
                     normalOutlineObj.SetActive(true);
-                    normalOutlineObj.transform.position = new Vector3(tileVisualCenter.x, tileVisualCenter.y + quadVertAdjust, 0f);
+                    normalOutlineObj.transform.position = new Vector3(tileVisualCenter.x, tileVisualCenter.y, 0f);
                     normalOutlineObj.transform.localScale = Vector3.one;
                     if (normalRenderer != null)
                     {
@@ -605,6 +605,7 @@ namespace IsometricGame.Environment
             Color c = new Color(0.38f, 0.65f, 0.28f); // grass green
             if (qType == QuarterBlockType.Dirt) c = new Color(0.55f, 0.38f, 0.22f);
             else if (qType == QuarterBlockType.Log) c = new Color(0.48f, 0.32f, 0.18f);
+            else if (qType == QuarterBlockType.Plank) c = new Color(0.78f, 0.62f, 0.44f);
             SpawnDebrisParticles(quadPos, c);
 
             if (IsometricGame.UI.HotbarUI.Instance != null)
@@ -629,6 +630,7 @@ namespace IsometricGame.Environment
             {
                 if (qType == QuarterBlockType.Dirt) targetSprite = QuarterBlockManager.Instance.QuarterDirtSprite;
                 else if (qType == QuarterBlockType.Log) targetSprite = QuarterBlockManager.Instance.QuarterLogSprite;
+                else if (qType == QuarterBlockType.Plank) targetSprite = QuarterBlockManager.Instance.QuarterPlankSprite;
                 else targetSprite = QuarterBlockManager.Instance.QuarterGrassSprite;
             }
 
@@ -671,13 +673,12 @@ namespace IsometricGame.Environment
             breakingOverlayObj.SetActive(true);
 
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(breakingGridPos, 0);
-            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0f;
             int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(breakingGridPos.x, breakingGridPos.y, 0, -8000 + 40);
 
             // Micro-vibration strike shake
             float shakeX = Mathf.Sin(breakTimer * 55f) * 0.007f;
 
-            breakingOverlayObj.transform.position = new Vector3(tileVisualCenter.x + shakeX, tileVisualCenter.y + quadVertAdjust, 0f);
+            breakingOverlayObj.transform.position = new Vector3(tileVisualCenter.x + shakeX, tileVisualCenter.y, 0f);
             breakingOverlayObj.transform.localScale = Vector3.one;
             breakingRenderer.sortingOrder = baseSortingOrder;
         }
@@ -685,8 +686,7 @@ namespace IsometricGame.Environment
         private void ExecuteFullTileBreak()
         {
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(breakingGridPos, 0);
-            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0f;
-            Vector2 breakPos = tileVisualCenter + new Vector2(0f, quadVertAdjust);
+            Vector2 breakPos = tileVisualCenter;
 
             if (QuarterBlockManager.Instance != null && QuarterBlockManager.Instance.HasAnyQuarterBlocks(breakingGridPos))
             {

@@ -478,10 +478,11 @@ namespace IsometricGame.Tilemap
 
                     float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
                     bool isStonePath = false;
+                    bool hasVegetation = false;
 
                     if (distToDoor > doorClearRadius)
                     {
-                        // 2. Procedural Stone Quad Plates Path (batches of max 3 tiles with noise)
+                        // 4. Procedural Stone Quad Plates Path (batches of max 3 tiles with noise)
                         isStonePath = ShouldSpawnStonePath(x, y);
                         if (isStonePath)
                         {
@@ -489,56 +490,55 @@ namespace IsometricGame.Tilemap
                         }
                         else
                         {
-                            // 3. Procedural Small Rocks Overlay (rare ~0.6% clusters)
-                            if (ShouldSpawnSmallRocks(x, y))
+                            // 5. Procedural Vegetation (Pine Trees & Bushes) - evaluated first so foliage doesn't spawn under them
+                            float tnx = (x + treeSeed * 73f) * treeNoiseScale;
+                            float tny = (y + treeSeed * 73f) * treeNoiseScale;
+                            float treeGroveNoise = Mathf.PerlinNoise(tnx, tny);
+
+                            // High frequency deterministic pseudo-random roll within the grove
+                            float treeSubRoll = Mathf.PerlinNoise((x * 17.13f + treeSeed), (y * 31.87f + treeSeed));
+
+                            bool spawnTree = (treeGroveNoise > treeThreshold) && (treeSubRoll < treeSpawnProbability);
+
+                            if (spawnTree)
                             {
-                                SpawnSmallRocksTile(chunkObj.transform, x, y);
+                                hasVegetation = true;
+                                SpawnTreeTile(chunkObj.transform, x, y);
                             }
                             else
                             {
-                                // 4. Procedural Grass Overlays: Rare Long Grass (~0.9%) or Natural Short Grass (~3.2%)
-                                if (ShouldSpawnLongGrass(x, y))
-                                {
-                                    SpawnLongGrassTile(chunkObj.transform, x, y);
-                                }
-                                else if (ShouldSpawnShortGrass(x, y))
-                                {
-                                    SpawnShortGrassTile(chunkObj.transform, x, y);
-                                }
+                                float nx = (x + bushSeed * 100f) * bushNoiseScale;
+                                float ny = (y + bushSeed * 100f) * bushNoiseScale;
+                                float noise = Mathf.PerlinNoise(nx, ny);
 
-                                // 5. Procedural Tiny Grass Foliage (subtle ~0.3% spawn chance on each of 3 variants)
-                                SpawnTinyFoliageIfRolled(chunkObj.transform, x, y);
+                                if (noise > bushThreshold)
+                                {
+                                    hasVegetation = true;
+                                    SpawnBushTile(chunkObj.transform, x, y);
+                                }
                             }
-                        }
-                    }
 
-                    // 6. Procedural Vegetation (Pine Trees & Bushes) - kept clear from stone paths
-                    if (distToDoor > doorClearRadius && !isStonePath)
-                    {
-                        // A. Procedural Pine Trees in organic bunches/groves
-                        float tnx = (x + treeSeed * 73f) * treeNoiseScale;
-                        float tny = (y + treeSeed * 73f) * treeNoiseScale;
-                        float treeGroveNoise = Mathf.PerlinNoise(tnx, tny);
-
-                        // High frequency deterministic pseudo-random roll within the grove
-                        float treeSubRoll = Mathf.PerlinNoise((x * 17.13f + treeSeed), (y * 31.87f + treeSeed));
-
-                        bool spawnTree = (treeGroveNoise > treeThreshold) && (treeSubRoll < treeSpawnProbability);
-
-                        if (spawnTree)
-                        {
-                            SpawnTreeTile(chunkObj.transform, x, y);
-                        }
-                        else
-                        {
-                            // B. Procedural Bush Check
-                            float nx = (x + bushSeed * 100f) * bushNoiseScale;
-                            float ny = (y + bushSeed * 100f) * bushNoiseScale;
-                            float noise = Mathf.PerlinNoise(nx, ny);
-
-                            if (noise > bushThreshold)
+                            // 6. Procedural Grass Overlays: Rare Long Grass, Natural Short Grass, Small Rocks, & Tiny Foliage
+                            // Only spawn on open, unobstructed grass tiles (never under bushes or trees)
+                            if (!hasVegetation)
                             {
-                                SpawnBushTile(chunkObj.transform, x, y);
+                                if (ShouldSpawnSmallRocks(x, y))
+                                {
+                                    SpawnSmallRocksTile(chunkObj.transform, x, y);
+                                }
+                                else
+                                {
+                                    if (ShouldSpawnLongGrass(x, y))
+                                    {
+                                        SpawnLongGrassTile(chunkObj.transform, x, y);
+                                    }
+                                    else if (ShouldSpawnShortGrass(x, y))
+                                    {
+                                        SpawnShortGrassTile(chunkObj.transform, x, y);
+                                    }
+
+                                    SpawnTinyFoliageIfRolled(chunkObj.transform, x, y);
+                                }
                             }
                         }
                     }
