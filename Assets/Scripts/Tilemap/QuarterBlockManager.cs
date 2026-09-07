@@ -46,8 +46,38 @@ namespace IsometricGame.Tilemap
         // Tile -> 4 Quadrant GameObjects
         private readonly Dictionary<Vector2Int, GameObject[]> tileQuarterObjects = new Dictionary<Vector2Int, GameObject[]>();
 
-        public Sprite QuarterGrassSprite => quarterGrassSprite;
-        public Sprite QuarterDirtSprite => quarterDirtSprite;
+        [Header("Inventory")]
+        [SerializeField] private int quarterGrassInventory = 0;
+        [SerializeField] private int quarterDirtInventory = 0;
+
+        public int QuarterGrassInventory => quarterGrassInventory;
+        public int QuarterDirtInventory => quarterDirtInventory;
+
+        public void AddToInventory(QuarterBlockType type, int count = 1)
+        {
+            if (type == QuarterBlockType.Grass) quarterGrassInventory += count;
+            else if (type == QuarterBlockType.Dirt) quarterDirtInventory += count;
+        }
+
+        public void SpawnDroppedQuarterBlocks(Vector2 tileOrigin, QuarterBlockType type, int count = 4)
+        {
+            EnsureSpritesLoaded();
+            Sprite sprite = (type == QuarterBlockType.Grass) ? quarterGrassSprite : quarterDirtSprite;
+
+            Vector2[] scatterOffsets = new Vector2[]
+            {
+                new Vector2(0f, 0.22f),
+                new Vector2(0f, -0.22f),
+                new Vector2(0.28f, 0f),
+                new Vector2(-0.28f, 0f)
+            };
+
+            for (int i = 0; i < count; i++)
+            {
+                Vector2 targetFloor = tileOrigin + scatterOffsets[i % scatterOffsets.Length] + (Vector2)UnityEngine.Random.insideUnitCircle * 0.05f;
+                IsometricGame.Environment.DroppedQuarterBlock.Spawn(tileOrigin, targetFloor, type, sprite);
+            }
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoInit()

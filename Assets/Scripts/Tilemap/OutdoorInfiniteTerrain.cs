@@ -159,13 +159,60 @@ namespace IsometricGame.Tilemap
         public int SmallRocksSeed { get => smallRocksSeed; set => smallRocksSeed = value; }
         public float DoorClearRadius { get => doorClearRadius; set => doorClearRadius = value; }
 
+        public static OutdoorInfiniteTerrain Instance { get; private set; }
+
+        private readonly HashSet<Vector2Int> brokenTiles = new HashSet<Vector2Int>();
+
+        public bool IsTileBroken(int x, int y) => brokenTiles.Contains(new Vector2Int(x, y));
+
+        public bool BreakTile(int gridX, int gridY)
+        {
+            Vector2Int pos = new Vector2Int(gridX, gridY);
+            brokenTiles.Add(pos);
+
+            Vector2Int chunkCoord = new Vector2Int(
+                Mathf.FloorToInt((float)gridX / chunkSize),
+                Mathf.FloorToInt((float)gridY / chunkSize)
+            );
+
+            if (loadedChunks.TryGetValue(chunkCoord, out GameObject chunkObj) && chunkObj != null)
+            {
+                bool removed = false;
+                string[] targets = new string[]
+                {
+                    $"Bush_{gridX}_{gridY}",
+                    $"SmallRocks_{gridX}_{gridY}",
+                    $"TinyFoliage_{gridX}_{gridY}",
+                    $"LongGrass_{gridX}_{gridY}",
+                    $"ShortGrass_{gridX}_{gridY}",
+                    $"StonePath_{gridX}_{gridY}",
+                    $"Grass_{gridX}_{gridY}"
+                };
+
+                foreach (string name in targets)
+                {
+                    Transform child = chunkObj.transform.Find(name);
+                    if (child != null)
+                    {
+                        if (Application.isPlaying) Destroy(child.gameObject);
+                        else DestroyImmediate(child.gameObject);
+                        removed = true;
+                    }
+                }
+                return removed;
+            }
+            return false;
+        }
+
         private void Awake()
         {
+            Instance = this;
             EnsureSpritesLoaded();
         }
 
         private void OnEnable()
         {
+            Instance = this;
             EnsureSpritesLoaded();
             RebuildAllChunks();
         }
@@ -398,6 +445,7 @@ namespace IsometricGame.Tilemap
                 {
                     // Exclude indoor bedroom coordinate bounds [-2, 8] x [-2, 8]
                     if (IsInsideRoomBounds(x, y)) continue;
+                    if (IsTileBroken(x, y)) continue;
 
                     // 1. Spawn Grass Tile
                     SpawnGrassTile(chunkObj.transform, x, y);
