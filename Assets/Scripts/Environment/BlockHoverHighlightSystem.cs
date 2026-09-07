@@ -459,7 +459,7 @@ namespace IsometricGame.Environment
                     quadHighlightObj.SetActive(true);
                     Vector2 center = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, groundElevation);
                     float elevY = hoveredElevation * (QuarterBlockManager.Instance != null ? QuarterBlockManager.Instance.QuarterBlockStackStepHeight : 0.25f);
-                    quadHighlightObj.transform.position = new Vector3(center.x, center.y + elevY + quadVertAdjust, 0f);
+                    quadHighlightObj.transform.position = new Vector3(center.x, center.y + elevY, 0f);
                     quadHighlightObj.transform.localScale = new Vector3(pulseScale, pulseScale, 1f);
 
                     if (quadHighlightRenderer != null)
