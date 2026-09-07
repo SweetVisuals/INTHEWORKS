@@ -49,6 +49,10 @@ namespace IsometricGame.Tilemap
         [SerializeField] private int maxStackHeight = 16;
         [SerializeField] private bool enableSortingDepth = true;
 
+        [Header("Alignment / Offsets")]
+        [Tooltip("Vertical pixel shift in world units (4px = 4f / 32f = 0.125f) to align placed quads with the tile diamond")]
+        [SerializeField] private float quadVerticalAdjustment = 0.125f; // 4px up
+
         // Tile -> 4 Quadrants -> Stack of types (North, South, East, West)
         private readonly Dictionary<Vector2Int, List<QuarterBlockType>[]> tileQuarterStacks = new Dictionary<Vector2Int, List<QuarterBlockType>[]>();
         // Tile -> 4 Quadrants -> Stack of GameObjects
@@ -68,6 +72,19 @@ namespace IsometricGame.Tilemap
         public Sprite QuarterLogSprite => quarterLogSprite;
         public float QuarterBlockStackStepHeight => quarterBlockStackStepHeight;
         public int MaxStackHeight => maxStackHeight;
+        public float QuadVerticalAdjustment => quadVerticalAdjustment;
+
+        /// <summary>
+        /// Returns the exact 2D world position for a quarter block at (gridPos, quadrant, elevation)
+        /// with the 4px vertical adjustment applied.
+        /// </summary>
+        public Vector2 GetQuarterBlockWorldPosition(Vector2Int gridPos, BlockQuadrant quadrant, int elevation = 0)
+        {
+            Vector2 center = GetTileVisualCenter(gridPos, 0);
+            Vector2 quadOffset = GetQuadrantOffset(quadrant);
+            float elevY = elevation * quarterBlockStackStepHeight;
+            return center + quadOffset + new Vector2(0f, elevY + quadVerticalAdjustment);
+        }
 
         /// <summary>
         /// Returns true if the player currently has a quad block tile selected in the hotbar (Slot 0 for Grass, Slot 1 for Dirt, Slot 2 for Log)
@@ -364,8 +381,7 @@ namespace IsometricGame.Tilemap
                 GameObject obj = new GameObject($"QuarterBlock_{gridPos.x}_{gridPos.y}_{quadrant}_L{elevation}");
                 obj.transform.SetParent(transform, false);
 
-                Vector2 center = GetTileVisualCenter(gridPos, 0);
-                Vector2 quadPos = center + GetQuadrantOffset(quadrant) + new Vector2(0f, elevation * quarterBlockStackStepHeight);
+                Vector2 quadPos = GetQuarterBlockWorldPosition(gridPos, quadrant, elevation);
                 obj.transform.position = new Vector3(quadPos.x, quadPos.y, 0f);
 
                 SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
@@ -473,7 +489,7 @@ namespace IsometricGame.Tilemap
                         if (height <= 0) continue;
 
                         BlockQuadrant bq = (BlockQuadrant)q;
-                        Vector2 surfaceCenter = GetTileVisualCenter(checkPos, 0) + GetQuadrantOffset(bq) + new Vector2(0f, height * quarterBlockStackStepHeight);
+                        Vector2 surfaceCenter = GetQuarterBlockWorldPosition(checkPos, bq, height);
 
                         float diffX = Mathf.Abs(mouseWorld.x - surfaceCenter.x);
                         float diffY = Mathf.Abs(mouseWorld.y - surfaceCenter.y);
