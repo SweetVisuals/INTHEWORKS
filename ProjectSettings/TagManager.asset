@@ -38,6 +38,9 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Subterranean
+    uniqueID: 314159265
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0

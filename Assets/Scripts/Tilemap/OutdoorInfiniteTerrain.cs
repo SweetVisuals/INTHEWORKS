@@ -106,6 +106,7 @@ namespace IsometricGame.Tilemap
 
         [Header("Sprites")]
         public Sprite grassSprite;
+        public Sprite stoneBlockSprite;
         public Sprite longGrassSprite;
         public Sprite shortGrassSprite;
         public Sprite tinyFoliage1Sprite;
@@ -122,6 +123,18 @@ namespace IsometricGame.Tilemap
         public Sprite bushSprite;
         public Sprite pineTreeSprite;
         public Sprite doorSprite;
+
+        [Header("Subterranean Stone Layers")]
+        [Tooltip("Vertical step height per subterranean layer in world units (10px = 0.3125f)")]
+        [SerializeField] private float subterraneanStepHeight = 0.3125f;
+        [Tooltip("Surface decoration vertical offset to sit on top of elevated grass block (10px = 0.3125f)")]
+        [SerializeField] private float grassTileSurfaceOffset = 0.3125f;
+        [Tooltip("Number of subterranean stone layers rendered beneath grass")]
+        [SerializeField] private int subterraneanLayers = 1;
+
+        public float SubterraneanStepHeight => subterraneanStepHeight;
+        public float GrassTileSurfaceOffset => grassTileSurfaceOffset;
+        public int SubterraneanLayers => subterraneanLayers;
 
         private Dictionary<Vector2Int, GameObject> loadedChunks = new Dictionary<Vector2Int, GameObject>();
         private Vector2Int lastChunkCoord = new Vector2Int(int.MinValue, int.MinValue);
@@ -246,9 +259,14 @@ namespace IsometricGame.Tilemap
         public void EnsureSpritesLoaded()
         {
 #if UNITY_EDITOR
-            if (grassSprite == null)
+            if (grassSprite == null || grassSprite.name == "grass tile" || grassSprite.name == "grass tile_0")
             {
-                grassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile.png");
+                grassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile block.png")
+                           ?? IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile.png");
+            }
+            if (stoneBlockSprite == null)
+            {
+                stoneBlockSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/stone_block.png");
             }
             if (longGrassSprite == null)
             {
@@ -445,9 +463,17 @@ namespace IsometricGame.Tilemap
                 {
                     // Exclude indoor bedroom coordinate bounds [-2, 8] x [-2, 8]
                     if (IsInsideRoomBounds(x, y)) continue;
+
+                    // 1. Always spawn Subterranean Stone Layer beneath (elevation -1, -2...)
+                    for (int layer = 1; layer <= subterraneanLayers; layer++)
+                    {
+                        SpawnStoneTile(chunkObj.transform, x, y, -layer);
+                    }
+
+                    // 2. Skip surface grass & decorations if broken
                     if (IsTileBroken(x, y)) continue;
 
-                    // 1. Spawn Grass Tile
+                    // 3. Spawn Grass Tile Block
                     SpawnGrassTile(chunkObj.transform, x, y);
 
                     float distToDoor = Vector2.Distance(new Vector2(x, y), doorGridPos);
@@ -547,8 +573,27 @@ namespace IsometricGame.Tilemap
 
             SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
             sr.sprite = grassSprite;
+            sr.sortingLayerName = "Default";
             sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -8000);
         }
+
+        private void SpawnStoneTile(Transform parent, int gridX, int gridY, int layer)
+        {
+            if (stoneBlockSprite == null) return;
+
+            Vector2 baseWorld = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            Vector2 worldPos = baseWorld + new Vector2(0f, layer * subterraneanStepHeight);
+            string tileName = layer == -1 ? $"Stone_{gridX}_{gridY}" : $"Stone_{gridX}_{gridY}_L{layer}";
+            GameObject tileObj = new GameObject(tileName);
+            tileObj.transform.SetParent(parent, false);
+            tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
+
+            SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
+            sr.sprite = stoneBlockSprite;
+            sr.sortingLayerName = "Subterranean";
+            sr.sortingOrder = IsometricCoordinates.CalculateSortingOrder(gridX, gridY, 0, -12000 + (layer * 10));
+        }
+
 
         public bool ShouldSpawnLongGrass(int x, int y)
         {
@@ -586,7 +631,7 @@ namespace IsometricGame.Tilemap
         {
             if (longGrassSprite == null) return;
 
-            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0) + new Vector2(0f, grassTileSurfaceOffset);
             GameObject tileObj = new GameObject($"LongGrass_{gridX}_{gridY}");
             tileObj.transform.SetParent(parent, false);
             tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
@@ -622,7 +667,7 @@ namespace IsometricGame.Tilemap
         {
             if (shortGrassSprite == null) return;
 
-            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0) + new Vector2(0f, grassTileSurfaceOffset);
             GameObject tileObj = new GameObject($"ShortGrass_{gridX}_{gridY}");
             tileObj.transform.SetParent(parent, false);
             tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
@@ -659,7 +704,7 @@ namespace IsometricGame.Tilemap
         {
             if (sprite == null) return;
 
-            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0) + new Vector2(0f, grassTileSurfaceOffset);
             GameObject foliageObj = new GameObject($"TinyFoliage_{variant}_{gridX}_{gridY}");
             foliageObj.transform.SetParent(parent, false);
             foliageObj.transform.position = new Vector3(worldPos.x + offsetX, worldPos.y + offsetY, 0f);
@@ -732,7 +777,7 @@ namespace IsometricGame.Tilemap
         {
             if (stonePathSprite == null) return;
 
-            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0) + new Vector2(0f, grassTileSurfaceOffset);
             GameObject tileObj = new GameObject($"StonePath_{gridX}_{gridY}");
             tileObj.transform.SetParent(parent, false);
             tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
@@ -793,7 +838,7 @@ namespace IsometricGame.Tilemap
 
             if (chosenSprite == null) return;
 
-            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0);
+            Vector2 worldPos = IsometricCoordinates.GridToWorld(gridX, gridY, 0) + new Vector2(0f, grassTileSurfaceOffset);
             GameObject tileObj = new GameObject($"Small{label}_{gridX}_{gridY}");
             tileObj.transform.SetParent(parent, false);
             tileObj.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
@@ -830,7 +875,7 @@ namespace IsometricGame.Tilemap
         }
 
         [Header("Tree Alignment Offset")]
-        [SerializeField] private Vector2 treeWorldOffset = new Vector2(0f, -0.234375f); // -7.5px / 32
+        [SerializeField] private Vector2 treeWorldOffset = new Vector2(0f, 0.078125f); // +2.5px / 32
 
         private void SpawnTreeTile(Transform parent, int gridX, int gridY)
         {

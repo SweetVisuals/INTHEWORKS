@@ -24,7 +24,8 @@ namespace IsometricGame.Tilemap
         Bush = 15,
         LongGrass = 16,
         ShortGrass = 17,
-        TinyFoliage = 18
+        TinyFoliage = 18,
+        StoneBlock = 19
     }
 
     /// <summary>
@@ -90,6 +91,7 @@ namespace IsometricGame.Tilemap
         public Sprite customDeskGlowSprite;
         public Sprite customBedSprite;
         public Sprite customGrassSprite;
+        public Sprite customStoneBlockSprite;
         public Sprite customLongGrassSprite;
         public Sprite customShortGrassSprite;
         public Sprite customTinyFoliage1Sprite;
@@ -414,6 +416,7 @@ namespace IsometricGame.Tilemap
 
             OutdoorInfiniteTerrain terrain = outsideGroup.AddComponent<OutdoorInfiniteTerrain>();
             terrain.grassSprite = customGrassSprite;
+            terrain.stoneBlockSprite = customStoneBlockSprite;
             terrain.longGrassSprite = customLongGrassSprite;
             terrain.shortGrassSprite = customShortGrassSprite;
             terrain.tinyFoliage1Sprite = customTinyFoliage1Sprite;
@@ -468,6 +471,7 @@ namespace IsometricGame.Tilemap
             if (type == TileType.WallWindow && customWindowSprite != null) return customWindowSprite;
             if (type == TileType.ComputerDesk && customDeskSprite != null) return customDeskSprite;
             if (type == TileType.BlueBed && customBedSprite != null) return customBedSprite;
+            if (type == TileType.StoneBlock && customStoneBlockSprite != null) return customStoneBlockSprite;
 
             if (spriteCache.TryGetValue(type, out Sprite sprite))
             {
@@ -540,9 +544,14 @@ namespace IsometricGame.Tilemap
             {
                 customDrawerHoverOutlineSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/sdrawer hover outline (shift 1px to the right).png");
             }
-            if (customGrassSprite == null)
+            if (customGrassSprite == null || customGrassSprite.name == "grass tile" || customGrassSprite.name == "grass tile_0")
             {
-                customGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile.png");
+                customGrassSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile block.png")
+                                 ?? IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/grass tile.png");
+            }
+            if (customStoneBlockSprite == null)
+            {
+                customStoneBlockSprite = IsometricGame.UI.UISpriteUtility.LoadSprite("Assets/Sprites/Map/stone_block.png");
             }
             if (customLongGrassSprite == null)
             {

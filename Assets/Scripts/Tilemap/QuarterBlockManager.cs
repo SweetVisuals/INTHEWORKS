@@ -50,8 +50,8 @@ namespace IsometricGame.Tilemap
         [SerializeField] private bool enableSortingDepth = true;
 
         [Header("Alignment / Offsets")]
-        [Tooltip("Vertical pixel shift in world units (4px = 4f / 32f = 0.125f) to align placed quads with the tile diamond")]
-        [SerializeField] private float quadVerticalAdjustment = 0.125f; // 4px up
+        [Tooltip("Vertical pixel shift in world units to align placed quads with the tile diamond")]
+        [SerializeField] private float quadVerticalAdjustment = 0.0f;
 
         // Tile -> 4 Quadrants -> Stack of types (North, South, East, West)
         private readonly Dictionary<Vector2Int, List<QuarterBlockType>[]> tileQuarterStacks = new Dictionary<Vector2Int, List<QuarterBlockType>[]>();
@@ -75,12 +75,16 @@ namespace IsometricGame.Tilemap
         public float QuadVerticalAdjustment => quadVerticalAdjustment;
 
         /// <summary>
-        /// Returns the exact 2D world position for a quarter block at (gridPos, quadrant, elevation)
-        /// with the 4px vertical adjustment applied.
+        /// Returns the exact 2D world position for a quarter block at (gridPos, quadrant, elevation).
         /// </summary>
         public Vector2 GetQuarterBlockWorldPosition(Vector2Int gridPos, BlockQuadrant quadrant, int elevation = 0)
         {
-            Vector2 center = GetTileVisualCenter(gridPos, 0);
+            int baseElev = 0;
+            if (OutdoorInfiniteTerrain.Instance != null && OutdoorInfiniteTerrain.Instance.IsTileBroken(gridPos.x, gridPos.y))
+            {
+                baseElev = -1;
+            }
+            Vector2 center = GetTileVisualCenter(gridPos, baseElev);
             Vector2 quadOffset = GetQuadrantOffset(quadrant);
             float elevY = elevation * quarterBlockStackStepHeight;
             return center + quadOffset + new Vector2(0f, elevY + quadVerticalAdjustment);
@@ -269,12 +273,13 @@ namespace IsometricGame.Tilemap
 
         /// <summary>
         /// Returns the visual diamond center in world coordinates for a tile at gridPos.
-        /// (In this project, 32x32 floor tiles have their visual diamond centered 8px / 0.25 units below tile center).
+        /// (In this project, 32x32 elevated half-tile grass blocks have their top visual diamond centered 3px / +0.09375 units above base pivot).
         /// </summary>
         public static Vector2 GetTileVisualCenter(Vector2Int gridPos, int elevation = 0)
         {
-            Vector2 baseWorld = IsometricCoordinates.GridToWorld(gridPos.x, gridPos.y, elevation);
-            return baseWorld + new Vector2(0f, -0.25f);
+            Vector2 baseWorld = IsometricCoordinates.GridToWorld(gridPos.x, gridPos.y, 0);
+            float elevOffset = elevation * 0.3125f; // 10px vertical block step per elevation layer
+            return baseWorld + new Vector2(0f, elevOffset + 0.09375f);
         }
 
         /// <summary>
@@ -282,7 +287,7 @@ namespace IsometricGame.Tilemap
         /// </summary>
         public static Vector2Int WorldToTileCoord(Vector2 worldPos)
         {
-            Vector2 relative = worldPos - new Vector2(0f, -0.25f);
+            Vector2 relative = worldPos - new Vector2(0f, 0.09375f);
             return IsometricCoordinates.WorldToGrid(relative);
         }
 
@@ -291,7 +296,7 @@ namespace IsometricGame.Tilemap
         /// </summary>
         public static BlockQuadrant GetQuadrantFromWorld(Vector2 worldPos, Vector2Int tileGridPos)
         {
-            Vector2 relative = worldPos - new Vector2(0f, -0.25f);
+            Vector2 relative = worldPos - new Vector2(0f, 0.09375f);
             float halfW = IsometricCoordinates.DefaultTileWidth * 0.5f;  // 0.5f
             float halfH = IsometricCoordinates.DefaultTileHeight * 0.5f; // 0.25f
 

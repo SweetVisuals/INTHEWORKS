@@ -418,9 +418,11 @@ namespace IsometricGame.Environment
             }
             Color renderColor = new Color(highlightColor.r, highlightColor.g, highlightColor.b, currentAlpha);
 
-            Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, 0);
-            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0.125f;
-            int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, 0, -8000 + 50);
+            bool isTileBroken = OutdoorInfiniteTerrain.Instance != null && OutdoorInfiniteTerrain.Instance.IsTileBroken(hoveredGridPos.x, hoveredGridPos.y);
+            int groundElevation = isTileBroken ? -1 : 0;
+            Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(hoveredGridPos, groundElevation);
+            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0f;
+            int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(hoveredGridPos.x, hoveredGridPos.y, groundElevation, -8000 + 50);
 
             // 3. Highlight Mode Execution:
             if (hoveringPlacedQuad && hoverMode != HoverHighlightMode.NormalOnly)
@@ -547,8 +549,9 @@ namespace IsometricGame.Environment
                 }
             }
 
-            // 3. LEFT CLICK (HOLD): Break Full Ground Tile (when not targeting a quad)
-            if (leftClickHeld && isHovering && !IsPointerOverUI() && !hoveringPlacedQuad)
+            // 3. LEFT CLICK (HOLD): Break Full Ground Tile (when not targeting a quad and not already broken)
+            bool isTileAlreadyBroken = OutdoorInfiniteTerrain.Instance != null && OutdoorInfiniteTerrain.Instance.IsTileBroken(hoveredGridPos.x, hoveredGridPos.y);
+            if (leftClickHeld && isHovering && !IsPointerOverUI() && !hoveringPlacedQuad && !isTileAlreadyBroken)
             {
                 if (!isBreaking || hoveredGridPos != breakingGridPos)
                 {
@@ -668,7 +671,7 @@ namespace IsometricGame.Environment
             breakingOverlayObj.SetActive(true);
 
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(breakingGridPos, 0);
-            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0.125f;
+            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0f;
             int baseSortingOrder = IsometricCoordinates.CalculateSortingOrder(breakingGridPos.x, breakingGridPos.y, 0, -8000 + 40);
 
             // Micro-vibration strike shake
@@ -682,7 +685,7 @@ namespace IsometricGame.Environment
         private void ExecuteFullTileBreak()
         {
             Vector2 tileVisualCenter = QuarterBlockManager.GetTileVisualCenter(breakingGridPos, 0);
-            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0.125f;
+            float quadVertAdjust = (QuarterBlockManager.Instance != null) ? QuarterBlockManager.Instance.QuadVerticalAdjustment : 0f;
             Vector2 breakPos = tileVisualCenter + new Vector2(0f, quadVertAdjust);
 
             if (QuarterBlockManager.Instance != null && QuarterBlockManager.Instance.HasAnyQuarterBlocks(breakingGridPos))
